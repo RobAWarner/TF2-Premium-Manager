@@ -1,3 +1,5 @@
+/* TODO: disable demoman!!!
+get working cosmetic list? */
 #pragma semicolon 1
 
 #include <sourcemod>
@@ -19,8 +21,7 @@ public Plugin:myinfo =
 };
 
 
-public OnPluginStart()
-{
+public OnPluginStart() {
 	HookEvent("player_spawn", OnPlayerSpawned);
 	HookEvent("player_class", OnPlayerSpawned);
 	
