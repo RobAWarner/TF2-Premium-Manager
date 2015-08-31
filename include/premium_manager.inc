@@ -13,8 +13,9 @@ public SharedPlugin:__pl_premium_manager =
 
 public __pl_premium_manager_SetNTVOptional()
 {
-    MarkNativeAsOptional("Premium_RegisterEffect");
-    MarkNativeAsOptional("Premium_UnRegisterEffect");
+    MarkNativeAsOptional("Premium_RegEffect");
+    MarkNativeAsOptional("Premium_RegBasicEffect");
+    MarkNativeAsOptional("Premium_UnRegEffect");
     MarkNativeAsOptional("Premium_IsClientPremium");
     MarkNativeAsOptional("Premium_ShowMenu");
     MarkNativeAsOptional("Premium_IsEffectEnabled");
@@ -24,19 +25,35 @@ public __pl_premium_manager_SetNTVOptional()
 
 functag PremiumECE public(client);
 functag PremiumECD public(client);
+functag PremiumECF public(client);
+
+forward Premium_ManagerLoaded();
+forward Premium_ManagerUnLoaded();
 
 /**
- * Registers an effect
+ * Registers a togglable effect
  *
  * @param name               A name to be used to reference to this effect, will be used as its command.
  * @param displayName        A name to display to players for this effect.
  * @param enableCallback     A function to use as a callback for when an effect should be enabled
  * @param disabledCallback   A function to use as a callback for when an effect should be disabled
- * @param menuItem           Optional: Add a entry into premium menu for this effect.
- * @noreturn
+ * @param menuItem           Add a entry into premium menu for this effect.
+ * @return                   True is effect registered, false if it already exists
  */
 
-native Premium_RegisterEffect(const String:name[], const String:displayName[], PremiumECE:enableCallback, PremiumECD:disabledCallback, bool:menuItem = true);
+native bool:Premium_RegEffect(const String:name[], const String:displayName[], PremiumECE:enableCallback, PremiumECD:disabledCallback, bool:menuItem = true);
+
+/**
+ * Registers a basic effect with just a fire callback
+ *
+ * @param name               A name to be used to reference to this effect, will be used as its command.
+ * @param displayName        A name to display to players for this effect.
+ * @param fireCallback       A function to use as a callback for when a user runs the command
+ * @param menuItem           Add a entry into premium menu for this effect.
+ * @return                   True is effect registered, false if it already exists
+ */
+
+native bool:Premium_RegBasicEffect(const String:name[], const String:displayName[], PremiumECF:fireCallback, bool:menuItem = true);
 
 /**
  * UnRegisters an effect
@@ -44,7 +61,7 @@ native Premium_RegisterEffect(const String:name[], const String:displayName[], P
  * @param name   The name used to register the effect.
  * @noreturn
  */
-native Premium_UnRegisterEffect(const String:name[]);
+native bool:Premium_UnRegEffect(const String:name[]);
 
 /**
  * Returns whether or not a player has premium status
