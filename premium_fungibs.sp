@@ -1,3 +1,7 @@
+/* TODO: 
+    config option for ducks on backstab/headshot?
+    ducks for explode?
+*/
 #pragma semicolon 1
 
 #include <sourcemod>
@@ -9,9 +13,9 @@ new g_clrRender;
 new bool:g_bIsEnabled[MAXPLAYERS+1];
 
 public Plugin:myinfo = {
-    name = "Premium -> Funny Gibs",
+    name = "Premium -> Fun Gibs",
     author = "Monster Killer",
-    description = "Gibs of players you kill will instead be ducks.",
+    description = "Spawns ducks when you gib someone or they gib you.",
     version = "1.1",
     url = "http://monsterprojects.org"
 };
@@ -97,12 +101,12 @@ public ShouldGib(String:sWeapon[], any:customKill, any:attacker) {
         return true;
     if(StrContains(sWeapon, "deflect", false) > -1)
         return true;
-    if(((StrContains(sWeapon, "sentrygun", false) > -1) || (StrContains(weaponName, "wrangler", false) > -1)) && IsLvl3Sentry(attacker))
+    if(((StrContains(sWeapon, "sentrygun", false) > -1) || (StrContains(sWeapon, "wrangler", false) > -1)) && IsLvl3Sentry(attacker))
         return true;
     if(customKill == 1) // Headshot
         return true;
-    if(customKill == 2) // Backstab
-        return true;
+    /*if(customKill == 2) // Backstab
+        return true;*/
     
     return false;
 }
@@ -117,7 +121,7 @@ public IsLvl3Sentry(any:client) {
     return false;
 }
 
-public AddGibs(any:client, count = 1) {
+public AddGibs(any:client, count) {
     if(!IsValidEntity(client)) {
         return;
     }
