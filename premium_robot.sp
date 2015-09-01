@@ -1,5 +1,4 @@
-/* TODO: disable demoman!!!
-get working cosmetic list? */
+/* TODO: Create blacklist? */
 #pragma semicolon 1
 
 #include <sourcemod>
@@ -34,13 +33,13 @@ public OnPluginStart() {
 }
 
 public OnAllPluginsLoaded() {
-	if(LibraryExists("premium_manager"))
-		Premium_Loaded();
+    if(LibraryExists("premium_manager"))
+        Premium_Loaded();
 }
 
 public OnLibraryAdded(const String:name[]) {
-	if(StrEqual(name, "premium_manager"))
-		Premium_Loaded();
+    if(StrEqual(name, "premium_manager"))
+        Premium_Loaded();
 }
 
 public Premium_Loaded() {
@@ -84,23 +83,9 @@ public OnMapStart() {
 public SetRobotModel(client) {
     if(Premium_IsClientPremium(client) && IsPlayerAlive(client)) {
         if(g_bIsEnabled[client]) {
-            if(TF2_GetPlayerClass(client) == TFClass_DemoMan) {
-                if(!g_bDemoNotice[client]) {
-                    PrintToChat(client, "%s Due to an issue with the model, you cannot be a robot Demoman. Sorry :(", PREMIUM_PREFIX);
-                    g_bDemoNotice[client] = true;
-                }
-                return;
-            }
-            decl String:sClassName[10], String:sModel[PLATFORM_MAX_PATH];
-            TF2_GetNameOfClass(TF2_GetPlayerClass(client), sClassName, sizeof(sClassName));
-            Format(sModel, sizeof(sModel), "models/bots/%s/bot_%s.mdl", sClassName, sClassName);
-            ReplaceString(sModel, sizeof(sModel), "demoman", "demo", false);
-            SetVariantString(sModel);
-            AcceptEntityInput(client, "SetCustomModel");
-            SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 1);
+            EnableRobot(client);
         } else {
-            SetVariantString("");
-            AcceptEntityInput(client, "SetCustomModel");
+            DisableRobot(client);
         }
     }
 }
@@ -120,11 +105,11 @@ public Action:Timer_SetRobotOnSpawn(Handle:timer, any:userid) {
 
 public Action:OnPlayerTaunt(client, const String:command[], args) {
     if(g_bIsEnabled[client]) {
-        new TFClassType:class = TF2_GetPlayerClass(client);
-        if(class == TFClass_Engineer) {
+        new TFClassType:playerClass = TF2_GetPlayerClass(client);
+        if(playerClass == TFClass_Engineer) {
             return Plugin_Continue;
         } else {
-            PrintToChat(client, "%s Taunts are disabled when in robot mode (except for engineer).", PREMIUM_PREFIX);
+            PrintToChat(client, "%s \x07FE4444Taunts are disabled when in robot mode (except for engineer).\x01", PREMIUM_PREFIX);
             return Plugin_Handled;
         }
     }
@@ -139,9 +124,9 @@ public Action:SoundHook(clients[64], &numClients, String:sound[PLATFORM_MAX_PATH
         return Plugin_Continue;
 
     new client = Ent;
-    new TFClassType:class = TF2_GetPlayerClass(client);
+    new TFClassType:playerClass = TF2_GetPlayerClass(client);
 
-    if(g_bIsEnabled[client] && !g_bIsStealth[client]) {
+    if(playerClass != TFClass_DemoMan && g_bIsEnabled[client] && !g_bIsStealth[client]) {
         if(StrContains(sound, "vo/", false) == -1) 
             return Plugin_Continue;
         if(StrContains(sound, "announcer", false) != -1)
@@ -153,7 +138,7 @@ public Action:SoundHook(clients[64], &numClients, String:sound[PLATFORM_MAX_PATH
         ReplaceString(sound, sizeof(sound), ".wav", ".mp3", false);
 
         new String:sClassName[10], String:sClassNameMVM[15];
-        TF2_GetNameOfClass(class, sClassName, sizeof(sClassName));
+        TF2_GetNameOfClass(playerClass, sClassName, sizeof(sClassName));
         Format(sClassNameMVM, sizeof(sClassNameMVM), "%s_mvm", sClassName);
         ReplaceString(sound, sizeof(sound), sClassName, sClassNameMVM, false);
 
@@ -166,6 +151,30 @@ public Action:SoundHook(clients[64], &numClients, String:sound[PLATFORM_MAX_PATH
         return Plugin_Changed;
     }
     return Plugin_Continue;
+}
+
+public EnableRobot(client) {
+    if(TF2_GetPlayerClass(client) == TFClass_DemoMan) {
+        if(!g_bDemoNotice[client]) {
+            PrintToChat(client, "%s \x07FE4444Due to an issue with the model, you cannot be a robot Demoman. Sorry :(\x01", PREMIUM_PREFIX);
+            g_bDemoNotice[client] = true;
+        }
+        return;
+    }
+    decl String:sClassName[10], String:sModel[PLATFORM_MAX_PATH];
+    TF2_GetNameOfClass(TF2_GetPlayerClass(client), sClassName, sizeof(sClassName));
+    Format(sModel, sizeof(sModel), "models/bots/%s/bot_%s.mdl", sClassName, sClassName);
+    ReplaceString(sModel, sizeof(sModel), "demoman", "demo", false);
+    SetVariantString(sModel);
+    AcceptEntityInput(client, "SetCustomModel");
+    SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 1);
+    
+    RemoveWearables(client);
+}
+
+public DisableRobot(client) {
+    SetVariantString("");
+    AcceptEntityInput(client, "SetCustomModel");
 }
 
 public OnGameFrame() {
@@ -188,13 +197,50 @@ public OnGameFrame() {
 }
 
 public OnPlayerCloak(client) {
-    SetVariantString("");
-    AcceptEntityInput(client, "SetCustomModel");
+    DisableRobot(client);
 }
 
 public OnPlayerUnCloak(client) {
     SetRobotModel(client);
 }
+
+public RemoveWearables(client) {
+    /* Items come back on resupply?! */
+    new maxclients = GetMaxClients();
+    for(new i = maxclients + 1; i <= 2048; i++) {
+        if(!IsValidEntity(i))
+            continue;
+
+        decl String:sClassName[35], String:sModel[256];
+        GetEntityClassname(i, sClassName, sizeof(sClassName));
+        GetEntPropString(i, Prop_Data, "m_ModelName", sModel, sizeof(sModel));
+
+        if(!StrEqual(sClassName, "tf_wearable") && !StrEqual(sClassName, "tf_powerup_bottle"))
+            continue;
+        if(StrContains(sModel, "croc_shield") != -1 || StrContains(sModel, "c_rocketboots_soldier") != -1 || StrContains(sModel, "knife_shield") != -1 || StrContains(sModel, "c_paratrooper_pack") != -1)
+            continue;
+
+        if(client != GetEntPropEnt(i, Prop_Send, "m_hOwnerEntity"))
+            continue;
+
+        AcceptEntityInput(i, "Kill");
+    }
+}
+
+/*public OnEntityCreated(entity, const String:Classname[]) {
+    if(StrEqual(Classname, "tf_wearable"))
+        CreateTimer( 0.1, timerHookDelay, entity);
+}
+
+public Action:timerHookDelay(Handle:Timer, any:entity) {
+    if(IsValidEdict(entity)) {
+        new owner = GetEntPropEnt(i, Prop_Send, "m_hOwnerEntity");
+        if(!Premium_ClientIsPremium(owner) || !g_bIsEnabled[owner])
+            return;
+
+        // DO STUFF
+    }
+}*/
 
 stock TF2_GetNameOfClass(TFClassType:class, String:name[], maxlen) {
     switch(class) {

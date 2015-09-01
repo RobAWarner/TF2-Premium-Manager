@@ -9,6 +9,8 @@
 #undef REQUIRE_PLUGIN
 #include <premium_manager>
 
+#define PLUGIN_EFFECT "fungibs"
+
 new bool:g_bIsEnabled[MAXPLAYERS+1];
 
 public Plugin:myinfo = {
@@ -36,12 +38,12 @@ public OnLibraryAdded(const String:name[]) {
 }
 
 public Premium_Loaded() {
-    Premium_RegEffect("fungibs", "Duck Gibs", EnableEffect, DisableEffect, true);
+    Premium_RegEffect(PLUGIN_EFFECT, "Duck Gibs", EnableEffect, DisableEffect, true);
 }
 
 public OnPluginEnd() {
     if(LibraryExists("premium_manager"))
-        Premium_UnRegEffect("fungibs");
+        Premium_UnRegEffect(PLUGIN_EFFECT);
 }
 
 public EnableEffect(client) {

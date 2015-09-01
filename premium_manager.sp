@@ -8,7 +8,6 @@
     Pass userid not client?
     Disable client effects if lose premium on reloadadmins?
     Run all disablecallback's on unload?
-    When togglable effect is registered, look for clients that it should fire enable callback?
     Allow command access for anyone but show message to non-premium members?
 */
 #pragma semicolon 1
@@ -31,6 +30,7 @@ new Handle:g_hPremiumMenuEffectOptions = INVALID_HANDLE;
 
 new bool:g_bIsPremium[MAXPLAYERS+1];
 new bool:g_bClientAuthorised[MAXPLAYERS+1];
+new Handle:g_ClientLastMenu[MAXPLAYERS+1];
 
 enum g_ePremiumEffect {
     Handle:enableCallback,
@@ -52,6 +52,8 @@ public Plugin:myinfo = {
 };
 
 public OnPluginStart() {
+    CreateConVar("sm_premium_manager_version", PREMIUM_VERSION, "Version of Premium Manager", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_UNLOGGED|FCVAR_DONTRECORD|FCVAR_REPLICATED|FCVAR_NOTIFY);
+
     g_hEffects = CreateTrie();
     g_hEffectNames = CreateArray(64);
     g_hPremiumMenuEffectItems = CreateArray(64);
@@ -84,6 +86,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max) 
     CreateNative("Premium_UnRegEffect", Native_UnRegEffect);
     CreateNative("Premium_IsClientPremium", Native_IsClientPremium);
     CreateNative("Premium_ShowMenu", Native_ShowMenu);
+    CreateNative("Premium_ShowLastMenu", Native_ShowLastMenu);
     CreateNative("Premium_IsEffectEnabled", Native_IsEffectEnabled);
     CreateNative("Premium_SetEffectState", Native_SetEffectState);
     CreateNative("Premium_AddMenuOption", Native_AddMenuOption);
@@ -94,6 +97,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max) 
 public OnClientConnected(client) {
     g_bIsPremium[client] = false;
     g_bClientAuthorised[client] = false;
+    g_ClientLastMenu[client] = INVALID_HANDLE;
 }
 
 public OnClientCookiesCached(client) {
@@ -199,6 +203,9 @@ public Native_RegEffect(Handle:plugin, numParams) {
 
     // Build Menu
     RebuildPremiumMenu();
+
+    // Enable on eligable clients
+    EnableActiveClients(sEffectName, hForwardEnable);
     
     return true;
 }
@@ -296,10 +303,24 @@ public Native_UnRegEffect(Handle:plugin, numParams) {
 public Native_ShowMenu(Handle:plugin, numParams) {
     new client = GetNativeCell(1);
 
-    if(!IsClientPremium(client))
+    if(!IsClientPremium(client)) {
         return false;
+    }
 
     ShowPremiumMenu(client);
+    return true;
+}
+
+public Native_ShowLastMenu(Handle:plugin, numParams) {
+    new client = GetNativeCell(1);
+
+    if(!IsClientPremium(client)) {
+        return false;
+    }
+
+    if(g_ClientLastMenu[client] != INVALID_HANDLE) {
+        DisplayMenu(g_ClientLastMenu[client], client, 120);
+    }
     return true;
 }
 
@@ -454,8 +475,22 @@ public UpdateClientPremiumStatus(client) {
     return 0;
 }
 
+public EnableActiveClients(String:sEffectName[], Handle:hEnableCallback) {
+    if(hEnableCallback == INVALID_HANDLE)
+        return;
+
+    new maxclients = GetMaxClients();
+    for(new i = 1; i < maxclients; i++) {
+        if(IsClientPremium(i) && Premium_IsEffectEnabled(i, sEffectName)) {
+            Call_StartForward(hEnableCallback);
+            Call_PushCell(i);
+            Call_Finish();
+        }
+    }
+}
+
 public bool:TriggerEffect(client, String:sEffectName[]) {
-    if(!IsValidClient(client) || !IsClientPremium(client)) {
+    if(!IsClientPremium(client)) {
         return false;
     }
 
@@ -600,6 +635,7 @@ public MenuHandler_PremiumTop(Handle:menu, MenuAction:action, param1, param2) {
         }
 
         SetMenuExitBackButton(hMenu, true);
+        g_ClientLastMenu[param1] = hMenu;
         DisplayMenu(hMenu, param1, 120);
     }
 }

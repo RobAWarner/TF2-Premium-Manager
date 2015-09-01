@@ -18,6 +18,7 @@ public __pl_premium_manager_SetNTVOptional()
     MarkNativeAsOptional("Premium_UnRegEffect");
     MarkNativeAsOptional("Premium_IsClientPremium");
     MarkNativeAsOptional("Premium_ShowMenu");
+    MarkNativeAsOptional("Premium_ShowLastMenu");
     MarkNativeAsOptional("Premium_IsEffectEnabled");
     MarkNativeAsOptional("Premium_SetEffectState");
     MarkNativeAsOptional("Premium_AddMenuOption");
@@ -76,11 +77,20 @@ native bool:Premium_IsClientPremium(client);
 /**
  * Display the premium menu to a client if they have premium status
  *
- * @param client   Client to check.
- * @return         True if premium, false otherwise.
+ * @param client   Client to show to.
+ * @noreturn
  */
 
 native bool:Premium_ShowMenu(client);
+
+/**
+ * Displays the previous premium menu the client viewed
+ *
+ * @param client   Client to show to.
+ * @noreturn
+ */
+
+native bool:Premium_ShowLastMenu(client);
 
 /**
  * Gets the current on/off status of an effect
