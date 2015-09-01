@@ -7,8 +7,7 @@
 
 new bool:g_bIsEnabled[MAXPLAYERS+1];
 
-public Plugin:myinfo = 
-{
+public Plugin:myinfo = {
     name = "Premium -> Thirdperson",
     author = "Monster Killer",
     description = "Allows players to toggle third person mode",
@@ -16,8 +15,7 @@ public Plugin:myinfo =
     url = "http://monsterprojects.org"
 };
 
-public OnPluginStart()
-{
+public OnPluginStart() {
     HookEvent("player_spawn", OnPlayerSpawned);
     HookEvent("player_class", OnPlayerSpawned);
 }
@@ -37,7 +35,8 @@ public Premium_Loaded() {
 }
 
 public OnPluginEnd() {
-    Premium_UnRegEffect("thirdperson");
+    if(LibraryExists("premium_manager"))
+        Premium_UnRegEffect("thirdperson");
 }
 
 public OnClientConnected(client) {
@@ -46,7 +45,7 @@ public OnClientConnected(client) {
 
 public EnableEffect(client) {
     g_bIsEnabled[client] = true;
-    if(IsValidClient(client) && IsPlayerAlive(client)) {
+    if(Premium_IsClientPremium(client) && IsPlayerAlive(client)) {
         SetVariantInt(1);
         AcceptEntityInput(client, "SetForcedTauntCam");
     }
@@ -54,7 +53,7 @@ public EnableEffect(client) {
 
 public DisableEffect(client) {
     g_bIsEnabled[client] = false;
-    if(IsValidClient(client) && IsPlayerAlive(client)) {
+    if(IsClientInGame(client) && IsPlayerAlive(client)) {
         SetVariantInt(0);
         AcceptEntityInput(client, "SetForcedTauntCam");
     }
@@ -67,26 +66,15 @@ public OnEventShutdown() {
 
 public Action:OnPlayerSpawned(Handle:event, const String:name[], bool:dontBroadcast) {
     new userid = GetEventInt(event, "userid");
-    if(IsValidClient(GetClientOfUserId(userid)) && g_bIsEnabled[GetClientOfUserId(userid)]) {
-        CreateTimer(0.2, SetTPOnSpawn, userid);
+    if(Premium_IsClientPremium(GetClientOfUserId(userid)) && g_bIsEnabled[GetClientOfUserId(userid)]) {
+        CreateTimer(0.2, Timer_SetTPOnSpawn, userid);
     }
 }
 
-public Action:SetTPOnSpawn(Handle:timer, any:userid) {
+public Action:Timer_SetTPOnSpawn(Handle:timer, any:userid) {
     new client = GetClientOfUserId(userid);
-    if(IsValidClient(client) && IsPlayerAlive(client)) {
+    if(Premium_IsClientPremium(client) && IsPlayerAlive(client)) {
         SetVariantInt(1);
         AcceptEntityInput(client, "SetForcedTauntCam");
     } 
-}
-
-stock bool:IsValidClient(client)
-{
-    if(client <= 0 || client > MaxClients)
-        return false;
-    if(!IsClientInGame(client))
-        return false;
-    if(IsClientSourceTV(client) || IsClientReplay(client) || IsFakeClient(client))
-        return false;
-    return true;
 }

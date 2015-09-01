@@ -112,4 +112,4 @@ native bool:Premium_SetEffectState(client, const String:effect[], bool:enabled);
  * @noreturn
  */
 
-native bool:Premium_AddMenuOption(const String:effect[], const String:effect[], PremiumMC:callback);
+native bool:Premium_AddMenuOption(const String:effect[], const String:title[], PremiumMC:callback);

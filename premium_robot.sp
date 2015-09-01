@@ -8,15 +8,17 @@ get working cosmetic list? */
 #undef REQUIRE_PLUGIN
 #include <premium_manager>
 
-new bool:g_bIsStealth[MAXPLAYERS+1];
-new bool:g_bRobotEnabled[MAXPLAYERS+1];
+#define PLUGIN_EFFECT "robotmode"
 
-public Plugin:myinfo = 
-{
+new bool:g_bIsStealth[MAXPLAYERS+1];
+new bool:g_bIsEnabled[MAXPLAYERS+1];
+new bool:g_bDemoNotice[MAXPLAYERS+1];
+
+public Plugin:myinfo = {
     name = "Premium -> Robot",
     author = "Monster Killer",
     description = "Allows Robots",
-    version = "1.1",
+    version = "1.2",
     url = "http://monsterprojects.org"
 };
 
@@ -42,54 +44,58 @@ public OnLibraryAdded(const String:name[]) {
 }
 
 public Premium_Loaded() {
-    Premium_RegEffect("robotmode", "Robot Mode", EnableEffect, DisableEffect, true);
+    Premium_RegEffect(PLUGIN_EFFECT, "Robot Mode", EnableEffect, DisableEffect, true);
 }
 
 public OnPluginEnd() {
-    Premium_UnRegEffect("robotmode");
+    if(LibraryExists("premium_manager"))
+        Premium_UnRegEffect(PLUGIN_EFFECT);
 }
 
 public OnClientConnected(client) {
-    g_bRobotEnabled[client] = false;
+    g_bIsEnabled[client] = false;
+    g_bDemoNotice[client] = false;
 }
 
 public EnableEffect(client) {
-    g_bRobotEnabled[client] = true;
+    g_bIsEnabled[client] = true;
     SetRobotModel(client);
 }
 
 public DisableEffect(client) {
-    g_bRobotEnabled[client] = false;
+    g_bIsEnabled[client] = false;
     SetRobotModel(client);
 }
 
-public OnEventShutdown()
-{
+public OnEventShutdown() {
     UnhookEvent("player_spawn", OnPlayerSpawned);
     UnhookEvent("player_class", OnPlayerSpawned);
 }
 
-public OnMapStart()
-{
-    new String:classname[10], String:Mdl[PLATFORM_MAX_PATH];
-    for (new TFClassType:i = TFClass_Scout; i <= TFClass_Engineer; i++)
-    {
-        TF2_GetNameOfClass(i, classname, sizeof(classname));
-        Format(Mdl, sizeof(Mdl), "models/bots/%s/bot_%s.mdl", Mdl, Mdl);
-        PrecacheModel(Mdl, true);
+public OnMapStart() {
+    new String:sClassName[10], String:sModel[PLATFORM_MAX_PATH];
+    for(new TFClassType:i = TFClass_Scout; i <= TFClass_Engineer; i++) {
+        TF2_GetNameOfClass(i, sClassName, sizeof(sClassName));
+        Format(sModel, sizeof(sModel), "models/bots/%s/bot_%s.mdl", sModel, sModel);
+        PrecacheModel(sModel, true);
     }
 }
 
-public SetRobotModel(client)
-{
-    if(IsValidClient(client) && IsPlayerAlive(client)) {
-        if(g_bRobotEnabled[client]) {
-            new String:classname[10];
-            new String:Mdl[PLATFORM_MAX_PATH];
-            TF2_GetNameOfClass(TF2_GetPlayerClass(client), classname, sizeof(classname));
-            Format(Mdl, sizeof(Mdl), "models/bots/%s/bot_%s.mdl", classname, classname);
-            ReplaceString(Mdl, sizeof(Mdl), "demoman", "demo", false);
-            SetVariantString(Mdl);
+public SetRobotModel(client) {
+    if(Premium_IsClientPremium(client) && IsPlayerAlive(client)) {
+        if(g_bIsEnabled[client]) {
+            if(TF2_GetPlayerClass(client) == TFClass_DemoMan) {
+                if(!g_bDemoNotice[client]) {
+                    PrintToChat(client, "%s Due to an issue with the model, you cannot be a robot Demoman. Sorry :(", PREMIUM_PREFIX);
+                    g_bDemoNotice[client] = true;
+                }
+                return;
+            }
+            decl String:sClassName[10], String:sModel[PLATFORM_MAX_PATH];
+            TF2_GetNameOfClass(TF2_GetPlayerClass(client), sClassName, sizeof(sClassName));
+            Format(sModel, sizeof(sModel), "models/bots/%s/bot_%s.mdl", sClassName, sClassName);
+            ReplaceString(sModel, sizeof(sModel), "demoman", "demo", false);
+            SetVariantString(sModel);
             AcceptEntityInput(client, "SetCustomModel");
             SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 1);
         } else {
@@ -99,49 +105,43 @@ public SetRobotModel(client)
     }
 }
 
-public Action:OnPlayerSpawned(Handle:event, const String:name[], bool:dontBroadcast)
-{
+public Action:OnPlayerSpawned(Handle:event, const String:name[], bool:dontBroadcast) {
     new client = GetClientOfUserId(GetEventInt(event, "userid"));
-    if(IsValidClient(client) && g_bRobotEnabled[client])
-        CreateTimer(0.2, SetRobotOnSpawn, GetEventInt(event, "userid"));
+    if(Premium_IsClientPremium(client) && g_bIsEnabled[client])
+        CreateTimer(0.2, Timer_SetRobotOnSpawn, GetEventInt(event, "userid"));
 }
 
-public Action:SetRobotOnSpawn(Handle:timer, any:userid)
-{
+public Action:Timer_SetRobotOnSpawn(Handle:timer, any:userid) {
     new client = GetClientOfUserId(userid);
-    if(client != 0)
+    if(client != 0 && Premium_IsClientPremium(client) && IsPlayerAlive(client)) {
         SetRobotModel(client);
+    }
 }
 
-public Action:OnPlayerTaunt(client, const String:command[], args)
-{
-    if(g_bRobotEnabled[client])
-    {
+public Action:OnPlayerTaunt(client, const String:command[], args) {
+    if(g_bIsEnabled[client]) {
         new TFClassType:class = TF2_GetPlayerClass(client);
-        if(class == TFClass_Engineer)
-        {
+        if(class == TFClass_Engineer) {
             return Plugin_Continue;
         } else {
-            PrintToChat(client, "[Premium] Taunts are currently disabled while a robot (except for engineer).");
+            PrintToChat(client, "%s Taunts are disabled when in robot mode (except for engineer).", PREMIUM_PREFIX);
             return Plugin_Handled;
         }
     }
     return Plugin_Continue;
 }
 
-public Action:SoundHook(clients[64], &numClients, String:sound[PLATFORM_MAX_PATH], &Ent, &channel, &Float:volume, &level, &pitch, &flags)
-{
+public Action:SoundHook(clients[64], &numClients, String:sound[PLATFORM_MAX_PATH], &Ent, &channel, &Float:volume, &level, &pitch, &flags) {
     if(volume == 0.0 || volume == 0.9997)
         return Plugin_Continue;
 
-    if(!IsValidClient(Ent))
+    if(!Premium_IsClientPremium(Ent))
         return Plugin_Continue;
 
     new client = Ent;
     new TFClassType:class = TF2_GetPlayerClass(client);
 
-    if(g_bRobotEnabled[client] && !g_bIsStealth[client])
-    {
+    if(g_bIsEnabled[client] && !g_bIsStealth[client]) {
         if(StrContains(sound, "vo/", false) == -1) 
             return Plugin_Continue;
         if(StrContains(sound, "announcer", false) != -1)
@@ -151,61 +151,53 @@ public Action:SoundHook(clients[64], &numClients, String:sound[PLATFORM_MAX_PATH
 
         ReplaceString(sound, sizeof(sound), "vo/", "vo/mvm/norm/", false);
         ReplaceString(sound, sizeof(sound), ".wav", ".mp3", false);
-        new String:classname[10], String:classname_mvm[15];
-        TF2_GetNameOfClass(class, classname, sizeof(classname));
-        Format(classname_mvm, sizeof(classname_mvm), "%s_mvm", classname);
-        ReplaceString(sound, sizeof(sound), classname, classname_mvm, false);
-        new String:soundchk[PLATFORM_MAX_PATH];
-        Format(soundchk, sizeof(soundchk), "sound/%s", sound);
-        if(!FileExists(soundchk, true))
+
+        new String:sClassName[10], String:sClassNameMVM[15];
+        TF2_GetNameOfClass(class, sClassName, sizeof(sClassName));
+        Format(sClassNameMVM, sizeof(sClassNameMVM), "%s_mvm", sClassName);
+        ReplaceString(sound, sizeof(sound), sClassName, sClassNameMVM, false);
+
+        new String:sSoundCheck[PLATFORM_MAX_PATH];
+        Format(sSoundCheck, sizeof(sSoundCheck), "sound/%s", sound);
+        if(!FileExists(sSoundCheck, true))
             return Plugin_Continue;
+
         PrecacheSound(sound);
         return Plugin_Changed;
     }
-
     return Plugin_Continue;
 }
 
-public OnGameFrame()
-{
+public OnGameFrame() {
     new maxclients = GetMaxClients();
-    for(new i = 1; i < maxclients; i++)
-    {
-        if(IsValidClient(i) && g_bRobotEnabled[i])
-        {
-            if(TF2_IsPlayerInCondition(i, TFCond_Cloaked) || TF2_IsPlayerInCondition(i, TFCond_Disguised))
-            {
-                if(g_bIsStealth[i] == false)
-                {
+    for(new i = 1; i < maxclients; i++) {
+        if(Premium_IsClientPremium(i) && g_bIsEnabled[i]) {
+            if(TF2_IsPlayerInCondition(i, TFCond_Cloaked) || TF2_IsPlayerInCondition(i, TFCond_Disguised)) {
+                if(g_bIsStealth[i] == false) {
                     g_bIsStealth[i] = true;
-                    OnCloak(i);
+                    OnPlayerCloak(i);
                 }
             } else {
-                if(g_bIsStealth[i] == true)
-                {
+                if(g_bIsStealth[i] == true) {
                     g_bIsStealth[i] = false;
-                    OnUnCloak(i);
+                    OnPlayerUnCloak(i);
                 }
             }
         }
     }
 }
 
-OnCloak(client)
-{
+public OnPlayerCloak(client) {
     SetVariantString("");
     AcceptEntityInput(client, "SetCustomModel");
 }
 
-OnUnCloak(client)
-{
+public OnPlayerUnCloak(client) {
     SetRobotModel(client);
 }
 
-stock TF2_GetNameOfClass(TFClassType:class, String:name[], maxlen)
-{
-    switch(class)
-    {
+stock TF2_GetNameOfClass(TFClassType:class, String:name[], maxlen) {
+    switch(class) {
         case TFClass_Scout: Format(name, maxlen, "scout");
         case TFClass_Soldier: Format(name, maxlen, "soldier");
         case TFClass_Pyro: Format(name, maxlen, "pyro");
@@ -216,15 +208,4 @@ stock TF2_GetNameOfClass(TFClassType:class, String:name[], maxlen)
         case TFClass_Sniper: Format(name, maxlen, "sniper");
         case TFClass_Spy: Format(name, maxlen, "spy");
     }
-}
-
-stock bool:IsValidClient(client)
-{
-    if(client <= 0 || client > MaxClients)
-        return false;
-    if(!IsClientInGame(client))
-        return false;
-    if(IsClientSourceTV(client) || IsClientReplay(client) || IsFakeClient(client))
-        return false;
-    return true;
 }

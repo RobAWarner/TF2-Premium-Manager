@@ -9,22 +9,17 @@
 #undef REQUIRE_PLUGIN
 #include <premium_manager>
 
-new g_clrRender;
 new bool:g_bIsEnabled[MAXPLAYERS+1];
 
 public Plugin:myinfo = {
     name = "Premium -> Fun Gibs",
     author = "Monster Killer",
     description = "Spawns ducks when you gib someone or they gib you.",
-    version = "1.1",
+    version = "1.2",
     url = "http://monsterprojects.org"
 };
 
 public OnPluginStart() {
-    g_clrRender = FindSendPropOffs("CBaseEntity", "m_clrRender");
-    if(g_clrRender == -1)
-        SetFailState("Could not find \"m_clrRender\"");
-
     HookEvent("player_death", OnPlayerDeath);
 
     //SetConVarBool(FindConVar("tf_playergib"), false);
@@ -45,11 +40,8 @@ public Premium_Loaded() {
 }
 
 public OnPluginEnd() {
-    Premium_UnRegEffect("fungibs");
-}
-
-public OnClientConnected(client) {
-    g_bIsEnabled[client] = false;
+    if(LibraryExists("premium_manager"))
+        Premium_UnRegEffect("fungibs");
 }
 
 public EnableEffect(client) {
@@ -57,6 +49,10 @@ public EnableEffect(client) {
 }
 
 public DisableEffect(client) {
+    g_bIsEnabled[client] = false;
+}
+
+public OnClientConnected(client) {
     g_bIsEnabled[client] = false;
 }
 
@@ -75,18 +71,17 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
     new String:sWeapon[32];
     GetEventString(event, "weapon", sWeapon, sizeof(sWeapon));
     
-    if(g_bIsEnabled[attacker] == true || g_bIsEnabled[client] == true) {
+    if((Premium_IsClientPremium(attacker) && g_bIsEnabled[attacker] == true) || (Premium_IsClientPremium(client) && g_bIsEnabled[client] == true)) {
         new customKill = GetEventInt(event, "customkill");
         if(ShouldGib(sWeapon, customKill, attacker)) {
-            CreateTimer(0.1, DeleteRagdoll, client);
-            AddGibs(client, 10);
+            CreateTimer(0.1, Timer_DeleteRagdoll, client);
+            SpawnGibs(client, 10);
         }
     }
-
     return Plugin_Continue;
 }
 
-public Action:DeleteRagdoll(Handle:Timer, any:client) {
+public Action:Timer_DeleteRagdoll(Handle:Timer, any:client) {
     new ragdoll = GetEntPropEnt(client, Prop_Send, "m_hRagdoll");
     if (ragdoll > 0) {
         SetEntPropEnt(client, Prop_Send, "m_hRagdoll", -1);
@@ -121,7 +116,7 @@ public IsLvl3Sentry(any:client) {
     return false;
 }
 
-public AddGibs(any:client, count) {
+public SpawnGibs(any:client, count) {
     if(!IsValidEntity(client)) {
         return;
     }
@@ -139,7 +134,7 @@ public AddGibs(any:client, count) {
             if(IsValidEntity(gib)) {
                 CollisionOffset = GetEntSendPropOffs(gib, "m_CollisionGroup");
                 SetEntData(gib, CollisionOffset, 1, 1, true);
-                
+
                 new Float:fVel[3];
                 fVel[0] = GetRandomFloat(-250.0, 250.0);
                 fVel[1] = GetRandomFloat(-250.0, 250.0);
@@ -153,22 +148,6 @@ public AddGibs(any:client, count) {
 
 public Action:Timer_DeleteOldGib(Handle:Timer, any:ent) {
     if(IsValidEntity(ent)) {
-        CreateTimer(0.1, Timer_FadeGibOut, ent, TIMER_REPEAT);
-        SetEntityRenderMode(ent, RENDER_TRANSCOLOR);
+        AcceptEntityInput(ent, "kill");
     }
 }
-
-public Action:Timer_FadeGibOut(Handle:Timer, any:ent) {
-    if(!IsValidEntity(ent)) {
-        KillTimer(Timer);
-        return;
-    }
-
-    new alpha = GetEntData(ent, g_clrRender + 3, 1);
-    if(alpha - 25 <= 0) {
-        RemoveEdict(ent);
-        KillTimer(Timer);
-    } else {
-        SetEntData(ent, g_clrRender + 3, alpha - 25, 1, true);
-    }
-}  
