@@ -20,12 +20,13 @@ public __pl_premium_manager_SetNTVOptional()
     MarkNativeAsOptional("Premium_ShowMenu");
     MarkNativeAsOptional("Premium_IsEffectEnabled");
     MarkNativeAsOptional("Premium_SetEffectState");
-    MarkNativeAsOptional("Premium_AddConfigOption");
+    MarkNativeAsOptional("Premium_AddMenuOption");
 }
 
 functag PremiumECE public(client);
 functag PremiumECD public(client);
 functag PremiumECF public(client);
+functag PremiumMC public(client);
 
 forward Premium_ManagerLoaded();
 forward Premium_ManagerUnLoaded();
@@ -33,7 +34,7 @@ forward Premium_ManagerUnLoaded();
 /**
  * Registers a togglable effect
  *
- * @param name               A name to be used to reference to this effect, will be used as its command.
+ * @param effect             A name to be used to reference to this effect, will be used as its command.
  * @param displayName        A name to display to players for this effect.
  * @param enableCallback     A function to use as a callback for when an effect should be enabled
  * @param disabledCallback   A function to use as a callback for when an effect should be disabled
@@ -41,27 +42,27 @@ forward Premium_ManagerUnLoaded();
  * @return                   True is effect registered, false if it already exists
  */
 
-native bool:Premium_RegEffect(const String:name[], const String:displayName[], PremiumECE:enableCallback, PremiumECD:disabledCallback, bool:menuItem = true);
+native bool:Premium_RegEffect(const String:effect[], const String:displayName[], PremiumECE:enableCallback, PremiumECD:disabledCallback, bool:menuItem = true);
 
 /**
  * Registers a basic effect with just a fire callback
  *
- * @param name               A name to be used to reference to this effect, will be used as its command.
+ * @param effect             A name to be used to reference to this effect, will be used as its command.
  * @param displayName        A name to display to players for this effect.
  * @param fireCallback       A function to use as a callback for when a user runs the command
  * @param menuItem           Add a entry into premium menu for this effect.
  * @return                   True is effect registered, false if it already exists
  */
 
-native bool:Premium_RegBasicEffect(const String:name[], const String:displayName[], PremiumECF:fireCallback, bool:menuItem = true);
+native bool:Premium_RegBasicEffect(const String:effect[], const String:displayName[], PremiumECF:fireCallback, bool:menuItem = true);
 
 /**
  * UnRegisters an effect
  *
- * @param name   The name used to register the effect.
+ * @param effect   The name used to register the effect.
  * @noreturn
  */
-native bool:Premium_UnRegEffect(const String:name[]);
+native bool:Premium_UnRegEffect(const String:effect[]);
 
 /**
  * Returns whether or not a player has premium status
@@ -85,11 +86,11 @@ native bool:Premium_ShowMenu(client);
  * Gets the current on/off status of an effect
  *
  * @param client   Client to get cookie for.
- * @param name     Effect name to check.
+ * @param effect   Effect name to check.
  * @return         True if enabled, false otherwise.
  */
 
-native bool:Premium_IsEffectEnabled(client, const String:name[]);
+native bool:Premium_IsEffectEnabled(client, const String:effect[]);
 
 /**
  * Sets the current on/off status of an effect
@@ -100,14 +101,15 @@ native bool:Premium_IsEffectEnabled(client, const String:name[]);
  * @noreturn
  */
 
-native bool:Premium_SetEffectState(client, const String:name[], bool:enabled);
+native bool:Premium_SetEffectState(client, const String:effect[], bool:enabled);
 
 /**
- * Adds a 'configure' option to an effects menu item
+ * Adds an option to an effects menu
  *
  * @param effect     Effect name to add menu to.
- * @param callback   Function to call when user select the configure option.
+ * @param title      Title to use for menu option.
+ * @param callback   Function to call when user select the menu option.
  * @noreturn
  */
 
-native bool:Premium_AddConfigOption(const String:name[], bool:enabled);
+native bool:Premium_AddMenuOption(const String:effect[], const String:effect[], PremiumMC:callback);

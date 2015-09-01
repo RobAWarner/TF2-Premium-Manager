@@ -82,7 +82,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max) 
     CreateNative("Premium_ShowMenu", Native_ShowMenu);
     CreateNative("Premium_IsEffectEnabled", Native_IsEffectEnabled);
     CreateNative("Premium_SetEffectState", Native_SetEffectState);
-    CreateNative("Premium_AddConfigOption", Native_AddPremiumEffectConfigMenu);
+    CreateNative("Premium_AddMenuOption", Native_AddMenuOption);
 
     return APLRes_Success;
 }
@@ -269,7 +269,7 @@ public Native_UnRegEffect(Handle:plugin, numParams) {
         if(Effect[disableCallback] != INVALID_HANDLE) {
             new maxclients = GetMaxClients();
             for(new i = 1; i < maxclients; i++) {
-                if(IsValidClient(i) && IsClientPremium(i)) {
+                if(IsClientPremium(i)) {
                     Call_StartForward(Effect[disableCallback]);
                     Call_PushCell(i);
                     Call_Finish();
@@ -291,7 +291,7 @@ public Native_UnRegEffect(Handle:plugin, numParams) {
 public Native_ShowMenu(Handle:plugin, numParams) {
     new client = GetNativeCell(1);
 
-    if(!IsValidClient(client) || !IsClientPremium(client))
+    if(!IsClientPremium(client))
         return false;
 
     ShowPremiumMenu(client);
@@ -301,14 +301,7 @@ public Native_ShowMenu(Handle:plugin, numParams) {
 public Native_IsClientPremium(Handle:plugin, numParams) {
     new client = GetNativeCell(1);
 
-    if(!IsValidClient(client))
-        return false;
-
     return IsClientPremium(client);
-}
-
-public Native_AddPremiumEffectConfigMenu(Handle:plugin, numParams) {
-    
 }
 
 public Native_IsEffectEnabled(Handle:plugin, numParams) {
@@ -355,11 +348,18 @@ public Native_SetEffectState(Handle:plugin, numParams) {
     return true;
 }
 
+public Native_AddMenuOption(Handle:plugin, numParams) {
+    
+}
+
 /********************
 |  Other Functions  |
 ********************/
 
 public bool:IsClientPremium(client) {
+    if(!IsValidClient(client))
+        return false;
+
     if(g_bIsPremium[client])
         return true;
 
