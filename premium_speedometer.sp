@@ -108,7 +108,6 @@ public OnClientConnected(client) {
 public EnableEffect(client) {
     g_bIsEnabled[client] = true;
     if(!g_bCookiesCached[client]) {
-        PrintToChatAll("Firing speedo!");
         UpdateClientCookies(client);
     }
 }
