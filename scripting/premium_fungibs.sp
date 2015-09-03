@@ -9,12 +9,12 @@
 #undef REQUIRE_PLUGIN
 #include <premium_manager>
 
-#define PLUGIN_EFFECT "fungibs"
+#define PLUGIN_EFFECT "duckgibs"
 
 new bool:g_bIsEnabled[MAXPLAYERS+1];
 
 public Plugin:myinfo = {
-    name = "Premium -> Fun Gibs",
+    name = "Premium -> Duck Gibs",
     author = "Monster Killer",
     description = "Spawns ducks when you gib someone or they gib you.",
     version = "1.2",
@@ -39,6 +39,7 @@ public OnLibraryAdded(const String:name[]) {
 
 public Premium_Loaded() {
     Premium_RegEffect(PLUGIN_EFFECT, "Duck Gibs", EnableEffect, DisableEffect, true);
+    Premium_AddEffectCooldown(PLUGIN_EFFECT, 5, PREMIUM_COOLDOWN_BOTH);
 }
 
 public OnPluginEnd() {

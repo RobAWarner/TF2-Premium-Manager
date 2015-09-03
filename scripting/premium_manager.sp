@@ -1,9 +1,8 @@
 /* TODO: 
     Player should be alive? Print fail?
-    Cooldown
     errors
     translations
-    track status here rather than in plugins?
+    track status here rather than in plugins? - Maybe not a good idea?
     Function/callback for invisible and disguised?
     Pass userid not client?
     Disable client effects if lose premium on reloadadmins?
@@ -33,19 +32,17 @@ new bool:g_bIsPremium[MAXPLAYERS+1];
 new bool:g_bClientAuthorised[MAXPLAYERS+1];
 
 new Handle:g_hClientLastMenu[MAXPLAYERS+1];
-new Handle:g_hCooldownEnableTimers[MAXPLAYERS+1];
-new Handle:g_hCooldownDisableableTimers[MAXPLAYERS+1];
 
 enum g_ePremiumEffect {
-    Handle:enableCallback,
-    Handle:disableCallback,
-    enableCooldown,
-    disableCooldown,
-    bool:clientEnableCooldown[MAXPLAYERS+1],
-    bool:clientDisableCooldown[MAXPLAYERS+1],
-    Handle:clientCookie,
     String:name[64],
     String:displayName[64],
+    Handle:enableCallback,
+    Handle:disableCallback,
+    enableCooldownTime,
+    disableCooldownTime,
+    clientEnableCooldownTime[MAXPLAYERS+1],
+    clientDisableCooldownTime[MAXPLAYERS+1],
+    Handle:clientCookie,
     bool:menuItem,
     bool:togglable,
     Handle:pluginHandle
@@ -81,7 +78,7 @@ public OnPluginStart() {
 }
 
 public OnPluginEnd() {
-    /* Run diable callbacks */
+    /* Run diable callbacks? */
 }
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max) {
@@ -111,8 +108,8 @@ public OnClientConnected(client) {
         GetArrayString(g_hEffectNames, i, sEffectName, sizeof(sEffectName));
         GetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
         
-        Effect[clientEnableCooldown][client] = false;
-        Effect[clientDisableCooldown][client] = false;
+        Effect[clientEnableCooldownTime][client] = 0;
+        Effect[clientDisableCooldownTime][client] = 0;
         
         SetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
     }
@@ -148,18 +145,28 @@ public OnClientPostAdminCheck(client) {
 **********************/
 
 public Action:Command_Premium(client, args) {
-    ShowPremiumMenu(client);
-}
+    if(!IsClientPremium(client)) {
+        CommandPermissionDenied(client);
+        return Plugin_Handled;
+    }
 
-public Action:Command_GenericPremium(client, args) {
-    decl String:sCommand[70], String:sEffectName[70];
-    GetCmdArg(0, sCommand, sizeof(sCommand));
-    
-    strcopy(sEffectName, sizeof(sEffectName), sCommand[3]);
-    
-    TriggerEffect(client, sEffectName);
+    if(GetCmdArgs() == 1) {
+        decl String:sEffectName[64];
+        GetCmdArg(1, sEffectName, sizeof(sEffectName));
+        if(FindStringInArray(g_hEffectNames, sEffectName) != -1) {
+            TriggerEffect(client, sEffectName);
+        } else {
+            ShowPremiumMenu(client);
+        }
+    } else {
+        ShowPremiumMenu(client);
+    }
 
     return Plugin_Handled;
+}
+
+public CommandPermissionDenied(client) {
+    PrintToChat(client, "%s You do not have access to premium. You can donate to gain access to all its awesome features!", PREMIUM_PREFIX);
 }
 
 
@@ -189,19 +196,26 @@ public Native_RegEffect(Handle:plugin, numParams) {
     new Handle:hForwardEnable = CreateForward(ET_Event, Param_Cell);
     AddToForward(hForwardEnable, plugin, GetNativeCell(3));
     Effect[enableCallback] = hForwardEnable;
-    Effect[enableCooldown] = 0;
+    Effect[enableCooldownTime] = 0;
 
     // Function called to end effect (By player toggle or disconnect)
     new Handle:hForwardDisable = CreateForward(ET_Event, Param_Cell);
     AddToForward(hForwardDisable, plugin, GetNativeCell(4));
     Effect[disableCallback] = hForwardDisable;
-    Effect[disableCooldown] = 0;
+    Effect[disableCooldownTime] = 0;
     
     // Client Cookie
     decl String:sCookieName[72] = "premium_";
     StrCat(sCookieName, sizeof(sCookieName), sEffectName);
     new Handle:hCookie = RegClientCookie(sCookieName, sEffectDisplayName, CookieAccess_Public);
     Effect[clientCookie] = hCookie;
+
+    // Set cooldown to 0 for all clients
+    new maxclients = GetMaxClients();
+    for(new i = 1; i < maxclients; i++) {
+        Effect[clientEnableCooldownTime][i] = 0;
+        Effect[clientDisableCooldownTime][i] = 0;
+    }
 
     // Add a menu item?
     Effect[menuItem] = GetNativeCell(5);
@@ -216,10 +230,11 @@ public Native_RegEffect(Handle:plugin, numParams) {
     PushArrayString(g_hEffectNames, sEffectName);
 
     // Register command
-    decl String:sCommand[67] = "sm_", String:sCommandDescription[128];
+    /*decl String:sCommand[67] = "sm_", String:sCommandDescription[128];
     StrCat(sCommand, sizeof(sCommand), sEffectName);
     Format(sCommandDescription, sizeof(sCommandDescription), "%s - Toggle %s on/off", sCommand, sEffectDisplayName);
-    RegAdminCmd(sCommand, Command_GenericPremium, ADMFLAG_CUSTOM1, sCommandDescription);
+
+    RegAdminCmd(sCommand, Command_GenericPremium, ADMFLAG_CUSTOM1, sCommandDescription);*/
 
     // Build Menu
     RebuildPremiumMenu();
@@ -252,11 +267,18 @@ public Native_RegBasicEffect(Handle:plugin, numParams) {
     new Handle:hForwardEnable = CreateForward(ET_Event, Param_Cell);
     AddToForward(hForwardEnable, plugin, GetNativeCell(3));
     Effect[enableCallback] = hForwardEnable;
-    Effect[enableCooldown] = 0;
+    Effect[enableCooldownTime] = 0;
 
     // Function called to end effect (Not needed here)
     Effect[disableCallback] = INVALID_HANDLE;
-    Effect[disableCooldown] = 0;
+    Effect[disableCooldownTime] = 0;
+
+    // Set cooldown to 0 for all clients
+    new maxclients = GetMaxClients();
+    for(new i = 1; i < maxclients; i++) {
+        Effect[clientEnableCooldownTime][i] = 0;
+        Effect[clientDisableCooldownTime][i] = 0;
+    }
 
     // Client Cookie (not needed here)
     Effect[clientCookie] = INVALID_HANDLE;
@@ -274,10 +296,11 @@ public Native_RegBasicEffect(Handle:plugin, numParams) {
     PushArrayString(g_hEffectNames, sEffectName);
 
     // Register command
-    decl String:sCommand[67] = "sm_", String:sCommandDescription[128];
+    /*decl String:sCommand[67] = "sm_", String:sCommandDescription[128];
     StrCat(sCommand, sizeof(sCommand), sEffectName);
     Format(sCommandDescription, sizeof(sCommandDescription), "%s - %s", sCommand, sEffectDisplayName);
-    RegAdminCmd(sCommand, Command_GenericPremium, ADMFLAG_CUSTOM1, sCommandDescription);
+    
+    RegAdminCmd(sCommand, Command_GenericPremium, ADMFLAG_CUSTOM1, sCommandDescription);*/
 
     // Build Menu
     RebuildPremiumMenu();
@@ -338,10 +361,10 @@ public Native_AddEffectCooldown(Handle:plugin, numParams) {
     GetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
     
     if(flag == PREMIUM_COOLDOWN_ENABLE || flag == PREMIUM_COOLDOWN_BOTH) {
-        Effect[enableCooldown] = cooldownTime;
+        Effect[enableCooldownTime] = cooldownTime;
     }    
     if(flag == PREMIUM_COOLDOWN_DISABLE || flag == PREMIUM_COOLDOWN_BOTH) {
-        Effect[disableCooldown] = cooldownTime;
+        Effect[disableCooldownTime] = cooldownTime;
     }
     
     SetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
@@ -350,12 +373,12 @@ public Native_AddEffectCooldown(Handle:plugin, numParams) {
 public Native_ShowMenu(Handle:plugin, numParams) {
     new client = GetNativeCell(1);
 
-    if(!IsClientPremium(client)) {
-        return false;
+    if(IsClientPremium(client)) {
+        ShowPremiumMenu(client);
+        return true;
     }
 
-    ShowPremiumMenu(client);
-    return true;
+    return false;
 }
 
 public Native_ShowLastMenu(Handle:plugin, numParams) {
@@ -368,6 +391,7 @@ public Native_ShowLastMenu(Handle:plugin, numParams) {
     if(g_hClientLastMenu[client] != INVALID_HANDLE) {
         DisplayMenu(g_hClientLastMenu[client], client, PREMIUM_MENU_TIME);
     }
+
     return true;
 }
 
@@ -467,9 +491,10 @@ public Native_AddMenuOption(Handle:plugin, numParams) {
     }
 }
 
-/********************
-|  Other Functions  |
-********************/
+
+/**********************
+|  Client Validation  |
+**********************/
 
 public bool:IsClientPremium(client) {
     if(!IsValidClient(client)) {
@@ -526,6 +551,10 @@ public UpdateClientPremiumStatus(client) {
     return 0;
 }
 
+/***************************
+|  Trigger/Enable Effects  |
+***************************/
+
 public EnableActiveClients(String:sEffectName[], Handle:hEnableCallback) {
     if(hEnableCallback == INVALID_HANDLE) {
         return;
@@ -556,74 +585,151 @@ public bool:TriggerEffect(client, String:sEffectName[]) {
             decl String:sCookie[6];
             GetClientCookie(client, Effect[clientCookie], sCookie, sizeof(sCookie));
             if(StrEqual(sCookie, "on")) {
-                /* Enable Cooldown */
+                if(IsClientInCooldown(client, sEffectName, true, true)) {
+                    return false;
+                }
                 SetClientCookie(client, Effect[clientCookie], "off");
                 if(Effect[disableCallback] != INVALID_HANDLE) {
                     Call_StartForward(Effect[disableCallback]);
                     Call_PushCell(client);
                     Call_Finish();
+                    AddClientCooldown(client, sEffectName, false);
                     PrintToChat(client, "%s %s Disabled!", PREMIUM_PREFIX, Effect[displayName]);
                     return true;
                 }
             } else {
-                /* Disable Cooldown */
+                if(IsClientInCooldown(client, sEffectName, false, true)) {
+                    return false;
+                }
                 SetClientCookie(client, Effect[clientCookie], "on");
                 if(Effect[enableCallback] != INVALID_HANDLE) {
                     Call_StartForward(Effect[enableCallback]);
                     Call_PushCell(client);
                     Call_Finish();
+                    AddClientCooldown(client, sEffectName, true);
                     PrintToChat(client, "%s %s Enabled!", PREMIUM_PREFIX, Effect[displayName]);
                     return true;
                 }
             }
         }
     } else {
-        /* Enable Cooldown */
+        if(IsClientInCooldown(client, sEffectName, true, true)) {
+            return false;
+        }
         if(Effect[enableCallback] != INVALID_HANDLE) {
             Call_StartForward(Effect[enableCallback]);
             Call_PushCell(client);
             Call_Finish();
+            AddClientCooldown(client, sEffectName, true);
             return true;
         }
     }
+
     return false;
 }
-
 
 
 /***********************
 |  Cooldown Functions  |
 ***********************/
 
-public bool:IsClientInCooldown(client, String:sEffectName[], bool:bIsEnable) {
-    if(!IsClientPremium(client))
-        return false;
-    
+public bool:IsClientInCooldown(client, String:sEffectName[], bool:bIsEnable, bool:bPrintWarning) {
     decl Effect[g_ePremiumEffect];
     if(!GetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect))) {
         return false;
     }
 
     if(bIsEnable) {
-        if(Effect[clientEnableCooldown][client])
+        if(Effect[clientEnableCooldownTime][client] > 0) {
+            if(bPrintWarning) {
+                PrintCooldownWarning(client, Effect[clientEnableCooldownTime][client]);
+            }
             return true;
+        }
     } else {
-        if(Effect[clientDisableCooldown][client])
+        if(Effect[clientDisableCooldownTime][client] > 0) {
+            if(bPrintWarning) {
+                PrintCooldownWarning(client, Effect[clientDisableCooldownTime][client]);
+            }
             return true;
+        }
     }
 
     return false;
 }
 
-public bool:ProcessCooldown(client, String:sEffectName[], bool:bIsEnable) {
-    //g_hCooldownEnableTimers
+public bool:AddClientCooldown(client, String:sEffectName[], bool:bIsEnable) {
+    /* If time more than 30 seconds, add cookie?  */
+    decl Effect[g_ePremiumEffect];
+    if(!GetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect))) {
+        return false;
+    }
     
+    new Handle:hDataPack = CreateDataPack();
+    WritePackCell(hDataPack, GetClientUserId(client));
+    WritePackString(hDataPack, sEffectName);
+    WritePackCell(hDataPack, bIsEnable);
     
+    if(bIsEnable) {
+        if(Effect[enableCooldownTime] > 0) {
+            new cooldownTime = GetTime() + Effect[enableCooldownTime];
+            Effect[clientEnableCooldownTime][client] = cooldownTime;
+            SetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
+
+            CreateTimer(float(Effect[enableCooldownTime]), Timer_ClientCooldownEnd, hDataPack, TIMER_DATA_HNDL_CLOSE);
+
+            return true;
+        }
+    } else {
+        if(Effect[disableCooldownTime] > 0) {
+            new cooldownTime = GetTime() + Effect[disableCooldownTime];
+            Effect[clientDisableCooldownTime][client] = cooldownTime;
+            SetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
+            
+            CreateTimer(float(Effect[disableCooldownTime]), Timer_ClientCooldownEnd, hDataPack, TIMER_DATA_HNDL_CLOSE);
+
+            return true;
+        }
+    }
+
+    CloseHandle(hDataPack);
+    return false;
 }
 
-public Action:Timer_CooldownEnd(Handle:Timer, any:client) {
+public Action:Timer_ClientCooldownEnd(Handle:Timer, Handle:hDataPack) {
+    ResetPack(hDataPack);
+    decl String:sEffectName[64];
+    new client = GetClientOfUserId(ReadPackCell(hDataPack));
+    ReadPackString(hDataPack, sEffectName, sizeof(sEffectName));
+    new bIsEnable = ReadPackCell(hDataPack);
     
+    if(!IsValidClient(client)) {
+        return;
+    }
+    
+    decl Effect[g_ePremiumEffect];
+    if(!GetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect))) {
+        return;
+    }
+    
+    if(bIsEnable) {
+        if(Effect[enableCooldownTime] > 0) {
+            Effect[clientEnableCooldownTime][client] = 0;
+        }
+    } else {
+        if(Effect[disableCooldownTime] > 0) {
+            Effect[clientDisableCooldownTime][client] = 0;
+        }
+    }
+    SetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
 }
+
+public PrintCooldownWarning(client, cooldownStartTime) {
+    /* Get and print effect name too? */
+    new timeRemaining = (cooldownStartTime - GetTime());
+    PrintToChat(client, "%s You must wait %d:%02d to use that again", PREMIUM_PREFIX, timeRemaining / 60, timeRemaining % 60);
+}
+
 
 /*******************
 |  Menu Functions  |

@@ -7,7 +7,7 @@
 #undef REQUIRE_PLUGIN
 #include <premium_manager>
 
-#define PLUGIN_EFFECT "robotmode"
+#define PLUGIN_EFFECT "robot"
 
 new bool:g_bIsStealth[MAXPLAYERS+1];
 new bool:g_bIsEnabled[MAXPLAYERS+1];
@@ -44,6 +44,7 @@ public OnLibraryAdded(const String:name[]) {
 
 public Premium_Loaded() {
     Premium_RegEffect(PLUGIN_EFFECT, "Robot Mode", EnableEffect, DisableEffect, true);
+    Premium_AddEffectCooldown(PLUGIN_EFFECT, 5, PREMIUM_COOLDOWN_BOTH);
 }
 
 public OnPluginEnd() {
