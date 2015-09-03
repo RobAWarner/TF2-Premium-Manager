@@ -261,19 +261,19 @@ stock PrintToClientCenter(client, Float:fadeInTime, Float:fadeOutTime, Float:hol
 
 public ShowColorOptionMenu(client) {
     if(Premium_IsClientPremium(client)) {
-        DisplayMenu(g_hSpeedoMenuColor, client, 120);
+        DisplayMenu(g_hSpeedoMenuColor, client, PREMIUM_MENU_TIME);
     }
 }
 
 public ShowUnitOptionMenu(client) {
     if(Premium_IsClientPremium(client)) {
-        DisplayMenu(g_hSpeedoMenuUnits, client, 120);
+        DisplayMenu(g_hSpeedoMenuUnits, client, PREMIUM_MENU_TIME);
     }
 }
 
 public ShowPositionOptionMenu(client) {
     if(Premium_IsClientPremium(client)) {
-        DisplayMenu(g_hSpeedoMenuPosition, client, 120);
+        DisplayMenu(g_hSpeedoMenuPosition, client, PREMIUM_MENU_TIME);
     }
 }
 

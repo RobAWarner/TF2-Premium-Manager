@@ -319,7 +319,7 @@ stock SayText2All(author_index, const String:message[]) {
 
 public ShowColorOptionMenu(client) {
     if(g_hmColorItems != INVALID_HANDLE) {
-        DisplayMenu(g_hmColorItems, client, 120);
+        DisplayMenu(g_hmColorItems, client, PREMIUM_MENU_TIME);
     }
 }
 
