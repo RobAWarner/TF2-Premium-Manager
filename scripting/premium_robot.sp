@@ -3,6 +3,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <sdkhooks>
 #include <tf2_stocks>
 #undef REQUIRE_PLUGIN
 #include <premium_manager>
@@ -224,24 +225,38 @@ public RemoveWearables(client) {
         if(client != GetEntPropEnt(i, Prop_Send, "m_hOwnerEntity"))
             continue;
 
-        AcceptEntityInput(i, "Kill");
+        SDKHook(i, SDKHook_SetTransmit, cbTransmit);
     }
 }
 
-/*public OnEntityCreated(entity, const String:Classname[]) {
-    if(StrEqual(Classname, "tf_wearable"))
-        CreateTimer( 0.1, timerHookDelay, entity);
+public OnEntityCreated(entity, const String:sClassname[]) {
+    if(StrEqual(sClassname, "tf_wearable")) {
+        CreateTimer(0.1, Timer_EntityHook, entity);
+    }
 }
 
-public Action:timerHookDelay(Handle:Timer, any:entity) {
+public Action:Timer_EntityHook(Handle:Timer, any:entity) {
     if(IsValidEdict(entity)) {
-        new owner = GetEntPropEnt(i, Prop_Send, "m_hOwnerEntity");
-        if(!Premium_ClientIsPremium(owner) || !g_bIsEnabled[owner])
+        new owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+        if(!Premium_IsClientPremium(owner) || !g_bIsEnabled[owner])
             return;
 
-        // DO STUFF
+        decl String:sModel[256];
+        GetEntPropString(entity, Prop_Data, "m_ModelName", sModel, sizeof(sModel));
+
+        if(StrContains(sModel, "croc_shield") != -1 || StrContains(sModel, "c_rocketboots_soldier") != -1 || StrContains(sModel, "knife_shield") != -1 || StrContains(sModel, "c_paratrooper_pack") != -1)
+            return;
+
+        SDKHook(entity, SDKHook_SetTransmit, cbTransmit);
     }
-}*/
+}
+
+public Action:cbTransmit(Entity, Client) {
+	if(Premium_IsClientPremium(Client) && g_bIsEnabled[Client]) {
+        return Plugin_Handled;
+    }
+    return Plugin_Continue;
+}
 
 stock TF2_GetNameOfClass(TFClassType:class, String:name[], maxlen) {
     switch(class) {

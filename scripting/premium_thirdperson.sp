@@ -2,12 +2,14 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <tf2_stocks>
 #undef REQUIRE_PLUGIN
 #include <premium_manager>
 
 #define PLUGIN_EFFECT "thirdperson"
 
 new bool:g_bIsEnabled[MAXPLAYERS+1];
+new bool:g_bIsZoomed[MAXPLAYERS+1];
 new bool:g_bPlayerNotice[MAXPLAYERS+1];
 
 public Plugin:myinfo = {
@@ -44,6 +46,7 @@ public OnPluginEnd() {
 
 public OnClientConnected(client) {
     g_bIsEnabled[client] = false;
+    g_bIsZoomed[client] = false;
     g_bPlayerNotice[client] = false;
 }
 
@@ -86,4 +89,33 @@ public Action:Timer_SetTPOnSpawn(Handle:timer, any:userid) {
         SetVariantInt(1);
         AcceptEntityInput(client, "SetForcedTauntCam");
     } 
+}
+
+public OnGameFrame() {
+    new maxclients = GetMaxClients();
+    for(new i = 1; i < maxclients; i++) {
+        if(Premium_IsClientPremium(i) && g_bIsEnabled[i]) {
+            if(TF2_IsPlayerInCondition(i, TFCond_Zoomed)) {
+                if(g_bIsZoomed[i] == false) {
+                    g_bIsZoomed[i] = true;
+                    OnPlayerZoom(i);
+                }
+            } else {
+                if(g_bIsZoomed[i] == true) {
+                    g_bIsZoomed[i] = false;
+                    OnPlayerUnZoom(i);
+                }
+            }
+        }
+    }
+}
+
+public OnPlayerZoom(client) {
+    SetVariantInt(0);
+    AcceptEntityInput(client, "SetForcedTauntCam");
+}
+
+public OnPlayerUnZoom(client) {
+    SetVariantInt(1);
+    AcceptEntityInput(client, "SetForcedTauntCam");
 }

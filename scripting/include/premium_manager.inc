@@ -1,7 +1,11 @@
 #define PREMIUM_PREFIX "\x01[\x07CCFE44Premium\x01]"
+#define PREMIUM_MENU_TIME 120
 
-public SharedPlugin:__pl_premium_manager = 
-{
+#define PREMIUM_COOLDOWN_ENABLE 1
+#define PREMIUM_COOLDOWN_DISABLE 2
+#define PREMIUM_COOLDOWN_BOTH 3
+
+public SharedPlugin:__pl_premium_manager = {
     name = "premium_manager",
     file = "premium_manager.smx",
 #if defined REQUIRE_PLUGIN
@@ -11,11 +15,11 @@ public SharedPlugin:__pl_premium_manager =
 #endif
 };
 
-public __pl_premium_manager_SetNTVOptional()
-{
+public __pl_premium_manager_SetNTVOptional() {
     MarkNativeAsOptional("Premium_RegEffect");
     MarkNativeAsOptional("Premium_RegBasicEffect");
     MarkNativeAsOptional("Premium_UnRegEffect");
+    MarkNativeAsOptional("Premium_AddEffectCooldown");
     MarkNativeAsOptional("Premium_IsClientPremium");
     MarkNativeAsOptional("Premium_ShowMenu");
     MarkNativeAsOptional("Premium_ShowLastMenu");
@@ -64,6 +68,16 @@ native bool:Premium_RegBasicEffect(const String:effect[], const String:displayNa
  * @noreturn
  */
 native bool:Premium_UnRegEffect(const String:effect[]);
+
+/**
+ * Adds a cooldown to the registered effect
+ *
+ * @param effect   The name used to register the effect.
+ * @param time     Cooldown time (in seconds).
+ * @param flag     Flag to specify when to apply cooldown (PREMIUM_COOLDOWN_ENABLE, PREMIUM_COOLDOWN_DISABLE OR PREMIUM_COOLDOWN_BOTH).
+ * @noreturn
+ */
+native bool:Premium_AddEffectCooldown(const String:effect[], time, flag=0);
 
 /**
  * Returns whether or not a player has premium status

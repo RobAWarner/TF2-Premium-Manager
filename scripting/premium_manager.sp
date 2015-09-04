@@ -7,8 +7,8 @@
     Pass userid not client?
     Disable client effects if lose premium on reloadadmins?
     Run all disablecallback's on unload?
-    Allow command access for anyone but show message to non-premium members?
     Store cooldowns as cookie and load on connect
+    Are we actually checking if client is premium in the right places
 */
 #pragma semicolon 1
 
@@ -102,15 +102,15 @@ public OnClientConnected(client) {
     g_bIsPremium[client] = false;
     g_bClientAuthorised[client] = false;
     g_hClientLastMenu[client] = INVALID_HANDLE;
-    
+
     for(new i = 0; i < GetArraySize(g_hEffectNames); i++) {
         decl String:sEffectName[64], Effect[g_ePremiumEffect];
         GetArrayString(g_hEffectNames, i, sEffectName, sizeof(sEffectName));
         GetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
-        
+
         Effect[clientEnableCooldownTime][client] = 0;
         Effect[clientDisableCooldownTime][client] = 0;
-        
+
         SetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
     }
 }
@@ -140,9 +140,9 @@ public OnClientPostAdminCheck(client) {
     UpdateClientPremiumStatus(client);
 }
 
-/**********************
-|  Command Callbacks  |
-**********************/
+/********************
+|  Premium Command  |
+********************/
 
 public Action:Command_Premium(client, args) {
     if(!IsClientPremium(client)) {
@@ -178,7 +178,7 @@ public Native_RegEffect(Handle:plugin, numParams) {
     // Effect name (Used for cookie, command etc)
     decl String:sEffectName[64];
     GetNativeString(1, sEffectName, sizeof(sEffectName));
-    
+
     // Is it already registered?
     if(FindStringInArray(g_hEffectNames, sEffectName) != -1) {
         return false;
@@ -203,7 +203,7 @@ public Native_RegEffect(Handle:plugin, numParams) {
     AddToForward(hForwardDisable, plugin, GetNativeCell(4));
     Effect[disableCallback] = hForwardDisable;
     Effect[disableCooldownTime] = 0;
-    
+
     // Client Cookie
     decl String:sCookieName[72] = "premium_";
     StrCat(sCookieName, sizeof(sCookieName), sEffectName);
@@ -219,7 +219,7 @@ public Native_RegEffect(Handle:plugin, numParams) {
 
     // Add a menu item?
     Effect[menuItem] = GetNativeCell(5);
-    
+
     // Togglable?
     Effect[togglable] = true;
 
@@ -229,19 +229,12 @@ public Native_RegEffect(Handle:plugin, numParams) {
     SetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
     PushArrayString(g_hEffectNames, sEffectName);
 
-    // Register command
-    /*decl String:sCommand[67] = "sm_", String:sCommandDescription[128];
-    StrCat(sCommand, sizeof(sCommand), sEffectName);
-    Format(sCommandDescription, sizeof(sCommandDescription), "%s - Toggle %s on/off", sCommand, sEffectDisplayName);
-
-    RegAdminCmd(sCommand, Command_GenericPremium, ADMFLAG_CUSTOM1, sCommandDescription);*/
-
     // Build Menu
     RebuildPremiumMenu();
 
     // Enable on eligable clients
     EnableActiveClients(sEffectName, hForwardEnable);
-    
+
     return true;
 }
 
@@ -295,13 +288,6 @@ public Native_RegBasicEffect(Handle:plugin, numParams) {
     SetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
     PushArrayString(g_hEffectNames, sEffectName);
 
-    // Register command
-    /*decl String:sCommand[67] = "sm_", String:sCommandDescription[128];
-    StrCat(sCommand, sizeof(sCommand), sEffectName);
-    Format(sCommandDescription, sizeof(sCommandDescription), "%s - %s", sCommand, sEffectDisplayName);
-    
-    RegAdminCmd(sCommand, Command_GenericPremium, ADMFLAG_CUSTOM1, sCommandDescription);*/
-
     // Build Menu
     RebuildPremiumMenu();
 
@@ -348,7 +334,7 @@ public Native_UnRegEffect(Handle:plugin, numParams) {
 public Native_AddEffectCooldown(Handle:plugin, numParams) {
     decl String:sEffectName[64];
     GetNativeString(1, sEffectName, sizeof(sEffectName));
-    
+
     new Index = FindStringInArray(g_hEffectNames, sEffectName);
     if(Index == -1) {
         return;
@@ -359,14 +345,14 @@ public Native_AddEffectCooldown(Handle:plugin, numParams) {
 
     decl Effect[g_ePremiumEffect];
     GetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
-    
+
     if(flag == PREMIUM_COOLDOWN_ENABLE || flag == PREMIUM_COOLDOWN_BOTH) {
         Effect[enableCooldownTime] = cooldownTime;
     }    
     if(flag == PREMIUM_COOLDOWN_DISABLE || flag == PREMIUM_COOLDOWN_BOTH) {
         Effect[disableCooldownTime] = cooldownTime;
     }
-    
+
     SetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
 }
 
@@ -446,6 +432,8 @@ public Native_SetEffectState(Handle:plugin, numParams) {
 }
 
 public Native_AddMenuOption(Handle:plugin, numParams) {
+    // Is the effect even registered and does it belong to the same plugin?
+
     decl String:sEffectName[64], String:sItemTitle[64];
     GetNativeString(1, sEffectName, sizeof(sEffectName));
     GetNativeString(2, sItemTitle, sizeof(sItemTitle));
@@ -458,7 +446,7 @@ public Native_AddMenuOption(Handle:plugin, numParams) {
         for(new i = 0; i < GetArraySize(hOptionArray); i++) {
             new Handle:hOptionDataPack = GetArrayCell(hOptionArray, i);
             decl String:sItemTitle2[64];
-            
+
             ResetPack(hOptionDataPack);
             ReadPackString(hOptionDataPack, sItemTitle2, sizeof(sItemTitle2));
 
@@ -476,7 +464,7 @@ public Native_AddMenuOption(Handle:plugin, numParams) {
     new Handle:hDatapack = CreateDataPack();
     WritePackString(hDatapack, sItemTitle);
     WritePackCell(hDatapack, hForward);
-    
+
     if(MenuOptionsIndex == -1) {
         new Handle:hOptionArray = CreateArray(64);
         PushArrayCell(hOptionArray, hDatapack);
@@ -664,12 +652,12 @@ public bool:AddClientCooldown(client, String:sEffectName[], bool:bIsEnable) {
     if(!GetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect))) {
         return false;
     }
-    
+
     new Handle:hDataPack = CreateDataPack();
     WritePackCell(hDataPack, GetClientUserId(client));
     WritePackString(hDataPack, sEffectName);
     WritePackCell(hDataPack, bIsEnable);
-    
+
     if(bIsEnable) {
         if(Effect[enableCooldownTime] > 0) {
             new cooldownTime = GetTime() + Effect[enableCooldownTime];
@@ -702,16 +690,16 @@ public Action:Timer_ClientCooldownEnd(Handle:Timer, Handle:hDataPack) {
     new client = GetClientOfUserId(ReadPackCell(hDataPack));
     ReadPackString(hDataPack, sEffectName, sizeof(sEffectName));
     new bIsEnable = ReadPackCell(hDataPack);
-    
+
     if(!IsValidClient(client)) {
         return;
     }
-    
+
     decl Effect[g_ePremiumEffect];
     if(!GetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect))) {
         return;
     }
-    
+
     if(bIsEnable) {
         if(Effect[enableCooldownTime] > 0) {
             Effect[clientEnableCooldownTime][client] = 0;
@@ -780,7 +768,7 @@ public MenuHandler_PremiumTop(Handle:menu, MenuAction:action, param1, param2) {
 
         new Handle:hMenu = CreateMenu(MenuHandler_PremiumEffect);
         SetMenuTitle(hMenu, "Premium / %s", Effect[displayName]);
-        
+
         new MenuOptionsIndex = FindStringInArray(g_hPremiumMenuEffectItems, sEffectName);
         new bHasItems = false;
 
@@ -791,15 +779,15 @@ public MenuHandler_PremiumTop(Handle:menu, MenuAction:action, param1, param2) {
             } else {
                 StrCat(sMenuItem, sizeof(sMenuItem), "On");
             }
-            
+
             new Handle:hDataPack = CreateDataPack();
             WritePackString(hDataPack, sEffectName);
             WritePackCell(hDataPack, PREMIUM_ACTION_TRIGGER);
             WritePackCell(hDataPack, INVALID_HANDLE);
-            
+
             decl String:sDataFormat[64];
             Format(sDataFormat, sizeof(sDataFormat), "%d", hDataPack);
-            
+
             AddMenuItem(hMenu, sDataFormat, sMenuItem);
             bHasItems = true;
         }
@@ -809,19 +797,19 @@ public MenuHandler_PremiumTop(Handle:menu, MenuAction:action, param1, param2) {
             for(new i = 0; i < GetArraySize(hOptionArray); i++) {
                 new Handle:hOptionDataPack = GetArrayCell(hOptionArray, i);
                 decl String:sItemTitle[64];
-                
+
                 ResetPack(hOptionDataPack);
                 ReadPackString(hOptionDataPack, sItemTitle, sizeof(sItemTitle));
                 new Handle:hItemCallback = ReadPackCell(hOptionDataPack);
-                
+
                 new Handle:hDataPack = CreateDataPack();
                 WritePackString(hDataPack, sEffectName);
                 WritePackCell(hDataPack, PREMIUM_ACTION_CALLBACK);
                 WritePackCell(hDataPack, hItemCallback);
-                
+
                 decl String:sDataFormat[64];
                 Format(sDataFormat, sizeof(sDataFormat), "%d", hDataPack);
-                
+
                 AddMenuItem(hMenu, sDataFormat, sItemTitle);
             }
             bHasItems = true;
@@ -844,10 +832,10 @@ public MenuHandler_PremiumEffect(Handle:menu, MenuAction:action, param1, param2)
         GetMenuItem(menu, param2, sHandle, sizeof(sHandle));
         new Handle:hDataPack = Handle:StringToInt(sHandle);
         ResetPack(hDataPack);
-        
+
         ReadPackString(hDataPack, sEffectName, sizeof(sEffectName));
         new Type = ReadPackCell(hDataPack);
-        
+
         if(Type == PREMIUM_ACTION_CALLBACK) {
             new Handle:hCallback = ReadPackCell(hDataPack);
 
