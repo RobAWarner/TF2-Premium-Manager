@@ -42,7 +42,7 @@ enum g_ePremiumEffect {
     disableCooldownTime,
     clientEnableCooldownTime[MAXPLAYERS+1],
     clientDisableCooldownTime[MAXPLAYERS+1],
-    Handle:clientCookie,
+    Handle:clientStateCookie,
     bool:menuItem,
     bool:togglable,
     Handle:pluginHandle
@@ -121,9 +121,9 @@ public OnClientCookiesCached(client) {
             decl String:sEffectName[64], Effect[g_ePremiumEffect];
             GetArrayString(g_hEffectNames, i, sEffectName, sizeof(sEffectName));
             GetTrieArray(g_hEffects, sEffectName, Effect, sizeof(Effect));
-            if(Effect[clientCookie] != INVALID_HANDLE) {
+            if(Effect[clientStateCookie] != INVALID_HANDLE) {
                 decl String:sCookie[6];
-                GetClientCookie(client, Effect[clientCookie], sCookie, sizeof(sCookie));
+                GetClientCookie(client, Effect[clientStateCookie], sCookie, sizeof(sCookie));
                 if(StrEqual(sCookie, "on")) {
                     if(Effect[enableCallback] != INVALID_HANDLE) {
                         Call_StartForward(Effect[enableCallback]);
@@ -208,7 +208,7 @@ public Native_RegEffect(Handle:plugin, numParams) {
     decl String:sCookieName[72] = "premium_";
     StrCat(sCookieName, sizeof(sCookieName), sEffectName);
     new Handle:hCookie = RegClientCookie(sCookieName, sEffectDisplayName, CookieAccess_Public);
-    Effect[clientCookie] = hCookie;
+    Effect[clientStateCookie] = hCookie;
 
     // Set cooldown to 0 for all clients
     new maxclients = GetMaxClients();
@@ -274,7 +274,7 @@ public Native_RegBasicEffect(Handle:plugin, numParams) {
     }
 
     // Client Cookie (not needed here)
-    Effect[clientCookie] = INVALID_HANDLE;
+    Effect[clientStateCookie] = INVALID_HANDLE;
 
     // Add a menu item?
     Effect[menuItem] = GetNativeCell(4);
@@ -396,9 +396,9 @@ public Native_IsEffectEnabled(Handle:plugin, numParams) {
         return false;
     }
 
-    if(Effect[clientCookie] != INVALID_HANDLE) {
+    if(Effect[clientStateCookie] != INVALID_HANDLE) {
         decl String:sCookie[6];
-        GetClientCookie(client, Effect[clientCookie], sCookie, sizeof(sCookie));
+        GetClientCookie(client, Effect[clientStateCookie], sCookie, sizeof(sCookie));
         if(StrEqual(sCookie, "on")) {
             return true;
         } else {
@@ -419,13 +419,13 @@ public Native_SetEffectState(Handle:plugin, numParams) {
         return false;
     }
 
-    if(Effect[clientCookie] != INVALID_HANDLE) {
+    if(Effect[clientStateCookie] != INVALID_HANDLE) {
         decl String:sCookie[6];
-        GetClientCookie(client, Effect[clientCookie], sCookie, sizeof(sCookie));
+        GetClientCookie(client, Effect[clientStateCookie], sCookie, sizeof(sCookie));
         if(iState == 1) {
-            SetClientCookie(client, Effect[clientCookie], "on");
+            SetClientCookie(client, Effect[clientStateCookie], "on");
         } else {
-            SetClientCookie(client, Effect[clientCookie], "off");
+            SetClientCookie(client, Effect[clientStateCookie], "off");
         }
     }
     return true;
@@ -569,14 +569,14 @@ public bool:TriggerEffect(client, String:sEffectName[]) {
     }
 
     if(Effect[togglable]) {
-        if(Effect[clientCookie] != INVALID_HANDLE) {
+        if(Effect[clientStateCookie] != INVALID_HANDLE) {
             decl String:sCookie[6];
-            GetClientCookie(client, Effect[clientCookie], sCookie, sizeof(sCookie));
+            GetClientCookie(client, Effect[clientStateCookie], sCookie, sizeof(sCookie));
             if(StrEqual(sCookie, "on")) {
                 if(IsClientInCooldown(client, sEffectName, true, true)) {
                     return false;
                 }
-                SetClientCookie(client, Effect[clientCookie], "off");
+                SetClientCookie(client, Effect[clientStateCookie], "off");
                 if(Effect[disableCallback] != INVALID_HANDLE) {
                     Call_StartForward(Effect[disableCallback]);
                     Call_PushCell(client);
@@ -589,7 +589,7 @@ public bool:TriggerEffect(client, String:sEffectName[]) {
                 if(IsClientInCooldown(client, sEffectName, false, true)) {
                     return false;
                 }
-                SetClientCookie(client, Effect[clientCookie], "on");
+                SetClientCookie(client, Effect[clientStateCookie], "on");
                 if(Effect[enableCallback] != INVALID_HANDLE) {
                     Call_StartForward(Effect[enableCallback]);
                     Call_PushCell(client);

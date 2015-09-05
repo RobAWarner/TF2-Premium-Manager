@@ -52,7 +52,7 @@ public OnClientConnected(client) {
 
 public EnableEffect(client) {
     g_bIsEnabled[client] = true;
-    if(Premium_IsClientPremium(client) && IsPlayerAlive(client)) {
+    if(IsClientInGame(client) && IsPlayerAlive(client)) {
         SetVariantInt(1);
         AcceptEntityInput(client, "SetForcedTauntCam");
     }
@@ -94,7 +94,7 @@ public Action:Timer_SetTPOnSpawn(Handle:timer, any:userid) {
 public OnGameFrame() {
     new maxclients = GetMaxClients();
     for(new i = 1; i < maxclients; i++) {
-        if(Premium_IsClientPremium(i) && g_bIsEnabled[i]) {
+        if(Premium_IsClientPremium(i) && IsPlayerAlive(i) && g_bIsEnabled[i]) {
             if(TF2_IsPlayerInCondition(i, TFCond_Zoomed)) {
                 if(g_bIsZoomed[i] == false) {
                     g_bIsZoomed[i] = true;
