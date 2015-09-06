@@ -9,6 +9,7 @@
     Run all disablecallback's on unload?
     Store cooldowns as cookie and load on connect
     Are we actually checking if client is premium in the right places
+    Should we be using IsClientPremium in plugins? If isenabled is set then the client must be?
 */
 #pragma semicolon 1
 
@@ -30,6 +31,7 @@ new Handle:g_hPremiumMenuEffectOptions = INVALID_HANDLE;
 
 new bool:g_bIsPremium[MAXPLAYERS+1];
 new bool:g_bClientAuthorised[MAXPLAYERS+1];
+new bool:g_bCookiesCached[MAXPLAYERS+1];
 
 new Handle:g_hClientLastMenu[MAXPLAYERS+1];
 
@@ -71,6 +73,9 @@ public OnPluginStart() {
     
     new maxclients = GetMaxClients();
     for(new i = 1; i < maxclients; i++) {
+        if(!g_bCookiesCached[i] && AreClientCookiesCached(i)) {
+            GetClientCookies(i);
+        }
         if(IsValidClient(i) && !g_bClientAuthorised[i]) {
             UpdateClientPremiumStatus(i);
         }
@@ -116,6 +121,11 @@ public OnClientConnected(client) {
 }
 
 public OnClientCookiesCached(client) {
+    GetClientCookies(client);
+}
+
+public GetClientCookies(client) {
+    g_bCookiesCached[client] = true;
     if(!IsClientSourceTV(client) && !IsClientReplay(client) && !IsFakeClient(client)) {
         for(new i = 0; i < GetArraySize(g_hEffectNames); i++) {
             decl String:sEffectName[64], Effect[g_ePremiumEffect];

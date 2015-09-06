@@ -44,8 +44,8 @@ public OnLibraryAdded(const String:name[]) {
 }
 
 public Premium_Loaded() {
-    Premium_RegEffect(PLUGIN_EFFECT, "Robot Mode", EnableEffect, DisableEffect, true);
-    Premium_AddEffectCooldown(PLUGIN_EFFECT, 5, PREMIUM_COOLDOWN_BOTH);
+    Premium_RegEffect(PLUGIN_EFFECT, "Robot Mode", Callback_EnableEffect, Callback_DisableEffect, true);
+    Premium_AddEffectCooldown(PLUGIN_EFFECT, 5, PREMIUM_COOLDOWN_ENABLE);
 }
 
 public OnPluginEnd() {
@@ -58,12 +58,12 @@ public OnClientConnected(client) {
     g_bDemoNotice[client] = false;
 }
 
-public EnableEffect(client) {
+public Callback_EnableEffect(client) {
     g_bIsEnabled[client] = true;
     SetRobotModel(client);
 }
 
-public DisableEffect(client) {
+public Callback_DisableEffect(client) {
     g_bIsEnabled[client] = false;
     SetRobotModel(client);
 }

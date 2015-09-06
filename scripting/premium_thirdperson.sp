@@ -21,8 +21,8 @@ public Plugin:myinfo = {
 };
 
 public OnPluginStart() {
-    HookEvent("player_spawn", OnPlayerSpawned);
-    HookEvent("player_class", OnPlayerSpawned);
+    HookEvent("player_spawn", Event_OnPlayerSpawned);
+    HookEvent("player_class", Event_OnPlayerSpawned);
 }
 
 public OnAllPluginsLoaded() {
@@ -36,7 +36,7 @@ public OnLibraryAdded(const String:name[]) {
 }
 
 public Premium_Loaded() {
-    Premium_RegEffect(PLUGIN_EFFECT, "Third Person", EnableEffect, DisableEffect, true);
+    Premium_RegEffect(PLUGIN_EFFECT, "Third Person", Callback_EnableEffect, Callback_DisableEffect, true);
 }
 
 public OnPluginEnd() {
@@ -50,7 +50,7 @@ public OnClientConnected(client) {
     g_bPlayerNotice[client] = false;
 }
 
-public EnableEffect(client) {
+public Callback_EnableEffect(client) {
     g_bIsEnabled[client] = true;
     if(IsClientInGame(client) && IsPlayerAlive(client)) {
         SetVariantInt(1);
@@ -58,7 +58,7 @@ public EnableEffect(client) {
     }
 }
 
-public DisableEffect(client) {
+public Callback_DisableEffect(client) {
     g_bIsEnabled[client] = false;
     if(IsClientInGame(client) && IsPlayerAlive(client)) {
         SetVariantInt(0);
@@ -67,11 +67,11 @@ public DisableEffect(client) {
 }
 
 public OnEventShutdown() {
-    UnhookEvent("player_spawn", OnPlayerSpawned);
-    UnhookEvent("player_class", OnPlayerSpawned);
+    UnhookEvent("player_spawn", Event_OnPlayerSpawned);
+    UnhookEvent("player_class", Event_OnPlayerSpawned);
 }
 
-public Action:OnPlayerSpawned(Handle:event, const String:name[], bool:dontBroadcast) {
+public Action:Event_OnPlayerSpawned(Handle:event, const String:name[], bool:dontBroadcast) {
     new userid = GetEventInt(event, "userid");
     new client = GetClientOfUserId(userid);
     if(Premium_IsClientPremium(client) && g_bIsEnabled[client]) {

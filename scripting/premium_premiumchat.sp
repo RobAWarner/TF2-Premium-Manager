@@ -57,8 +57,8 @@ public OnLibraryAdded(const String:name[]) {
 }
 
 public Premium_Loaded() {
-    Premium_RegEffect(PLUGIN_EFFECT, "Premium Chat", EnableEffect, DisableEffect, true);
-    Premium_AddMenuOption(PLUGIN_EFFECT, "Change Color", ShowColorOptionMenu);
+    Premium_RegEffect(PLUGIN_EFFECT, "Premium Chat", Callback_EnableEffect, Callback_DisableEffect, true);
+    Premium_AddMenuOption(PLUGIN_EFFECT, "Change Color", Callback_ShowColorOptionMenu);
 }
 
 public OnPluginEnd() {
@@ -75,12 +75,12 @@ public OnClientCookiesCached(client) {
     UpdateClientCookies(client);
 }
 
-public EnableEffect(client) {
+public Callback_EnableEffect(client) {
     g_bIsEnabled[client] = true;
     UpdateClientCookies(client);
 }
 
-public DisableEffect(client) {
+public Callback_DisableEffect(client) {
     g_bIsEnabled[client] = false;
 }
 
@@ -108,10 +108,16 @@ public LoadKV() {
     g_hKV = CreateKeyValues("PremiumColors");
     decl String:sFile[512];
     BuildPath(Path_SM, sFile, sizeof(sFile), "configs/premium_premiumchat_colors.cfg");
-    FileToKeyValues(g_hKV, sFile);
     
-    if(!KvJumpToKey(g_hKV, "Settings"))
+    if(!FileExists(sFile)) {
+        SetFailState("File Not Found: %s", Path_SM);
+    }
+
+    FileToKeyValues(g_hKV, sFile);
+
+    if(!KvJumpToKey(g_hKV, "Settings")) {
         return;
+    }
 
     KvGotoFirstSubKey(g_hKV);
     KvGetString(g_hKV, "prefix", g_sColorPrifx, sizeof(g_sColorPrifx), "^");
@@ -317,7 +323,7 @@ stock SayText2All(author_index, const String:message[]) {
 |  Menu Functions  |
 *******************/
 
-public ShowColorOptionMenu(client) {
+public Callback_ShowColorOptionMenu(client) {
     if(g_hmColorItems != INVALID_HANDLE) {
         DisplayMenu(g_hmColorItems, client, PREMIUM_MENU_TIME);
     }

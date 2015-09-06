@@ -89,10 +89,10 @@ public OnLibraryAdded(const String:name[]) {
 }
 
 public Premium_Loaded() {
-    Premium_RegEffect(PLUGIN_EFFECT, "Speedometer", EnableEffect, DisableEffect, true);
-    Premium_AddMenuOption(PLUGIN_EFFECT, "Change Color", ShowColorOptionMenu);
-    Premium_AddMenuOption(PLUGIN_EFFECT, "Change Units", ShowUnitOptionMenu);
-    Premium_AddMenuOption(PLUGIN_EFFECT, "Change Position", ShowPositionOptionMenu);
+    Premium_RegEffect(PLUGIN_EFFECT, "Speedometer", Callback_EnableEffect, Callback_DisableEffect, true);
+    Premium_AddMenuOption(PLUGIN_EFFECT, "Change Color", Callback_ShowColorOptionMenu);
+    Premium_AddMenuOption(PLUGIN_EFFECT, "Change Units", Callback_ShowUnitOptionMenu);
+    Premium_AddMenuOption(PLUGIN_EFFECT, "Change Position", Callback_ShowPositionOptionMenu);
 }
 
 public OnPluginEnd() {
@@ -105,14 +105,14 @@ public OnClientConnected(client) {
     g_bCookiesCached[client] = false;
 }
 
-public EnableEffect(client) {
+public Callback_EnableEffect(client) {
     g_bIsEnabled[client] = true;
     if(!g_bCookiesCached[client]) {
         UpdateClientCookies(client);
     }
 }
 
-public DisableEffect(client) {
+public Callback_DisableEffect(client) {
     g_bIsEnabled[client] = false;
 }
 
@@ -259,19 +259,19 @@ stock PrintToClientCenter(client, Float:fadeInTime, Float:fadeOutTime, Float:hol
 |  Menu Functions  |
 *******************/
 
-public ShowColorOptionMenu(client) {
+public Callback_ShowColorOptionMenu(client) {
     if(Premium_IsClientPremium(client)) {
         DisplayMenu(g_hSpeedoMenuColor, client, PREMIUM_MENU_TIME);
     }
 }
 
-public ShowUnitOptionMenu(client) {
+public Callback_ShowUnitOptionMenu(client) {
     if(Premium_IsClientPremium(client)) {
         DisplayMenu(g_hSpeedoMenuUnits, client, PREMIUM_MENU_TIME);
     }
 }
 
-public ShowPositionOptionMenu(client) {
+public Callback_ShowPositionOptionMenu(client) {
     if(Premium_IsClientPremium(client)) {
         DisplayMenu(g_hSpeedoMenuPosition, client, PREMIUM_MENU_TIME);
     }

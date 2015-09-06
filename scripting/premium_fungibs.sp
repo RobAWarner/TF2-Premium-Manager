@@ -22,7 +22,7 @@ public Plugin:myinfo = {
 };
 
 public OnPluginStart() {
-    HookEvent("player_death", OnPlayerDeath);
+    HookEvent("player_death", Event_OnPlayerDeath);
 
     //SetConVarBool(FindConVar("tf_playergib"), false);
 }
@@ -38,8 +38,8 @@ public OnLibraryAdded(const String:name[]) {
 }
 
 public Premium_Loaded() {
-    Premium_RegEffect(PLUGIN_EFFECT, "Duck Gibs", EnableEffect, DisableEffect, true);
-    Premium_AddEffectCooldown(PLUGIN_EFFECT, 5, PREMIUM_COOLDOWN_BOTH);
+    Premium_RegEffect(PLUGIN_EFFECT, "Duck Gibs", Callback_EnableEffect, Callback_DisableEffect, true);
+    Premium_AddEffectCooldown(PLUGIN_EFFECT, 5, PREMIUM_COOLDOWN_ENABLE);
 }
 
 public OnPluginEnd() {
@@ -47,11 +47,11 @@ public OnPluginEnd() {
         Premium_UnRegEffect(PLUGIN_EFFECT);
 }
 
-public EnableEffect(client) {
+public Callback_EnableEffect(client) {
     g_bIsEnabled[client] = true;
 }
 
-public DisableEffect(client) {
+public Callback_DisableEffect(client) {
     g_bIsEnabled[client] = false;
 }
 
@@ -60,14 +60,14 @@ public OnClientConnected(client) {
 }
 
 public OnEventShutdown() {
-    UnhookEvent("player_death", OnPlayerDeath);
+    UnhookEvent("player_death", Event_OnPlayerDeath);
 }
 
 public OnMapStart() {
     PrecacheModel("models/player/gibs/gibs_duck.mdl", true);
 }
 
-public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast) {
+public Action:Event_OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast) {
     new client = GetClientOfUserId(GetEventInt(event, "userid"));
     new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
     
