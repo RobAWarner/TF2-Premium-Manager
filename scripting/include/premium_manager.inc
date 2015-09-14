@@ -1,9 +1,13 @@
 #define PREMIUM_PREFIX "\x01[\x07CCFE44Premium\x01]"
+#define PREMIUM_PREFIX_NOCOLOR "[Premium]"
 #define PREMIUM_MENU_TIME 120
 
 #define PREMIUM_COOLDOWN_ENABLE 1
 #define PREMIUM_COOLDOWN_DISABLE 2
 #define PREMIUM_COOLDOWN_BOTH 3
+
+#define PREMIUM_RETURN_HIDEMENU 10
+#define PREMIUM_CALL_STOP 11
 
 public SharedPlugin:__pl_premium_manager = {
     name = "premium_manager",
@@ -26,6 +30,8 @@ public __pl_premium_manager_SetNTVOptional() {
     MarkNativeAsOptional("Premium_IsEffectEnabled");
     MarkNativeAsOptional("Premium_SetEffectState");
     MarkNativeAsOptional("Premium_AddMenuOption");
+    MarkNativeAsOptional("Premium_ActivateClientCooldown");
+    MarkNativeAsOptional("Premium_ResetClientCooldown");
 }
 
 functag PremiumECE public(client);
@@ -137,3 +143,25 @@ native bool:Premium_SetEffectState(client, const String:effect[], bool:enabled);
  */
 
 native bool:Premium_AddMenuOption(const String:effect[], const String:title[], PremiumMC:callback);
+
+/**
+ * Activates the effect cooldown on a client
+ *
+ * @param client     Client to activate for.
+ * @param effect     Effect name.
+ * @param isEnable   Set true if adding cooldown for enabling effect, false for disabling effect.
+ * @return           True on success, false otherwise
+ */
+
+native bool:Premium_ActivateClientCooldown(client, const String:effect[], bool:isEnable);
+
+/**
+ * Resets the effect cooldown on a client
+ *
+ * @param client     Client to reset.
+ * @param effect     Effect name.
+ * @param isEnable   Set true if resetting enable cooldown, false for disable cooldown.
+ * @return           True on success, false otherwise
+ */
+
+native bool:Premium_ResetClientCooldown(client, const String:effect[], bool:isEnable);

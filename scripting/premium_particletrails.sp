@@ -66,12 +66,13 @@ public OnPluginStart() {
 }
 
 public OnPluginEnd() {
-    if(LibraryExists("premium_manager"))
+    if(LibraryExists("premium_manager")) {
         Premium_UnRegEffect(PLUGIN_EFFECT);
-    
-    for(new i = 1; i < GetMaxClients(); i++) {
-        if(IsClientInGame(i) && g_bIsEnabled[i]) {
-            RemoveAllParticles(i);
+    } else {
+        for(new i = 1; i < GetMaxClients(); i++) {
+            if(IsClientInGame(i) && g_bIsEnabled[i]) {
+                RemoveAllParticles(i);
+            }
         }
     }
 }

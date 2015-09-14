@@ -1,4 +1,7 @@
-/* TODO: Create blacklist? */
+/* TODO: 
+    Cosmetics appear on death?
+    Set robot on spawn not instantly?
+ */
 #pragma semicolon 1
 
 #include <sourcemod>
