@@ -618,7 +618,7 @@ bool:ParseConfigurations()
 {
 	decl String:strPath[PLATFORM_MAX_PATH];
 	decl String:strFileName[PLATFORM_MAX_PATH];
-	Format(strFileName, sizeof(strFileName), "configs/buildinghats.cfg");
+	Format(strFileName, sizeof(strFileName), "configs/premium_buildinghats.cfg");
 	BuildPath(Path_SM, strPath, sizeof(strPath), strFileName);
 
 	LogMessage("[Building Hats] Executing configuration file %s", strPath);	
