@@ -1,5 +1,3 @@
-/* Particle Limits? */
-
 #pragma semicolon 1
 
 #include <sourcemod>
@@ -15,6 +13,10 @@
 
 #define PLUGIN_EFFECT "particletrails"
 
+/* TODO:
+    Particle limit? 20 or so?
+ */
+
 new Handle:g_hParticles[MAXPLAYERS+1]; // List of particle edicts so we can remove them at appropriate times
 new Handle:g_hParticleNames[MAXPLAYERS+1]; // List of particle names so we can remove them at appropriate times
 new Handle:g_hParticleTrie[MAXPLAYERS+1];
@@ -27,8 +29,8 @@ new bool:g_bIsStealth[MAXPLAYERS+1];
 new bool:g_bCookiesCached[MAXPLAYERS+1];
 
 public Plugin:myinfo = {
-    name        = "Particles",
-    author      = "Azelphur / MonsterKiller",
+    name        = "Premium -> Particles [TF2]",
+    author      = "Azelphur / Monster Killer",
     description = "Place cool particle effects on players.",
     version     = "1.3",
     url         = "http://www.azelphur.com"

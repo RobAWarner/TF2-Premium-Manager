@@ -1,13 +1,19 @@
+#define PREMIUM_VERSION "0.1.1"
+
 #define PREMIUM_PREFIX "\x01[\x07CCFE44Premium\x01]"
 #define PREMIUM_PREFIX_NOCOLOR "[Premium]"
+
 #define PREMIUM_MENU_TIME 120
+
+#define PREMIUM_ACTION_TRIGGER 1
+#define PREMIUM_ACTION_CALLBACK 2
 
 #define PREMIUM_COOLDOWN_ENABLE 1
 #define PREMIUM_COOLDOWN_DISABLE 2
 #define PREMIUM_COOLDOWN_BOTH 3
 
 #define PREMIUM_RETURN_HIDEMENU 10
-#define PREMIUM_CALL_STOP 11
+#define PREMIUM_RETURN_STOP 11
 
 public SharedPlugin:__pl_premium_manager = {
     name = "premium_manager",
@@ -34,10 +40,7 @@ public __pl_premium_manager_SetNTVOptional() {
     MarkNativeAsOptional("Premium_ResetClientCooldown");
 }
 
-functag PremiumECE public(client);
-functag PremiumECD public(client);
-functag PremiumECF public(client);
-functag PremiumMC public(client);
+functag PremiumCB public(client);
 
 forward Premium_ManagerLoaded();
 forward Premium_ManagerUnLoaded();
@@ -53,7 +56,7 @@ forward Premium_ManagerUnLoaded();
  * @return                   True is effect registered, false if it already exists
  */
 
-native bool:Premium_RegEffect(const String:effect[], const String:displayName[], PremiumECE:enableCallback, PremiumECD:disabledCallback, bool:menuItem = true);
+native bool:Premium_RegEffect(const String:effect[], const String:displayName[], PremiumCB:enableCallback, PremiumCB:disabledCallback, bool:menuItem = true);
 
 /**
  * Registers a basic effect with just a fire callback
@@ -65,7 +68,7 @@ native bool:Premium_RegEffect(const String:effect[], const String:displayName[],
  * @return                   True is effect registered, false if it already exists
  */
 
-native bool:Premium_RegBasicEffect(const String:effect[], const String:displayName[], PremiumECF:fireCallback, bool:menuItem = true);
+native bool:Premium_RegBasicEffect(const String:effect[], const String:displayName[], PremiumCB:fireCallback, bool:menuItem = true);
 
 /**
  * UnRegisters an effect
@@ -142,7 +145,7 @@ native bool:Premium_SetEffectState(client, const String:effect[], bool:enabled);
  * @noreturn
  */
 
-native bool:Premium_AddMenuOption(const String:effect[], const String:title[], PremiumMC:callback);
+native bool:Premium_AddMenuOption(const String:effect[], const String:title[], PremiumCB:callback);
 
 /**
  * Activates the effect cooldown on a client

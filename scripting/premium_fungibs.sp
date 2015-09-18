@@ -1,6 +1,7 @@
 /* TODO: 
     config option for ducks on backstab/headshot?
     ducks for explode?
+    Timer to stop spamming ducks?
 */
 #pragma semicolon 1
 
@@ -14,15 +15,16 @@
 new bool:g_bIsEnabled[MAXPLAYERS+1];
 
 public Plugin:myinfo = {
-    name = "Premium -> Duck Gibs",
+    name = "Premium -> Duck Gibs [TF2]",
     author = "Monster Killer",
     description = "Spawns ducks when you gib someone or they gib you.",
-    version = "1.2",
+    version = "1.3",
     url = "http://monsterprojects.org"
 };
 
 public OnPluginStart() {
-    HookEvent("player_death", Event_OnPlayerDeath);
+    HookEvent("player_death", Event_PlayerDeath);
+    AddCommandListener(Event_PlayerExplode, "explode");
 
     //SetConVarBool(FindConVar("tf_playergib"), false);
 }
@@ -45,6 +47,8 @@ public Premium_Loaded() {
 public OnPluginEnd() {
     if(LibraryExists("premium_manager"))
         Premium_UnRegEffect(PLUGIN_EFFECT);
+
+    RemoveCommandListener(Event_PlayerExplode, "explode");
 }
 
 public Callback_EnableEffect(client) {
@@ -60,14 +64,14 @@ public OnClientConnected(client) {
 }
 
 public OnEventShutdown() {
-    UnhookEvent("player_death", Event_OnPlayerDeath);
+    UnhookEvent("player_death", Event_PlayerDeath);
 }
 
 public OnMapStart() {
     PrecacheModel("models/player/gibs/gibs_duck.mdl", true);
 }
 
-public Action:Event_OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast) {
+public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast) {
     new client = GetClientOfUserId(GetEventInt(event, "userid"));
     new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
     
@@ -78,10 +82,17 @@ public Action:Event_OnPlayerDeath(Handle:event, const String:name[], bool:dontBr
         new customKill = GetEventInt(event, "customkill");
         if(ShouldGib(sWeapon, customKill, attacker)) {
             CreateTimer(0.1, Timer_DeleteRagdoll, client);
-            SpawnGibs(client, 10);
+            SpawnGibs(client);
         }
     }
     return Plugin_Continue;
+}
+
+public Action:Event_PlayerExplode(client, const String:command[], argc) {
+    if(Premium_IsClientPremium(client) && g_bIsEnabled[client] == true) {
+        CreateTimer(0.1, Timer_DeleteRagdoll, client);
+        SpawnGibs(client);
+    }
 }
 
 public Action:Timer_DeleteRagdoll(Handle:Timer, any:client) {
@@ -92,7 +103,7 @@ public Action:Timer_DeleteRagdoll(Handle:Timer, any:client) {
     }
 }
 
-public ShouldGib(String:sWeapon[], any:customKill, any:attacker) {
+ShouldGib(String:sWeapon[], any:customKill, any:attacker) {
     if(StrContains(sWeapon, "pipe", false) > -1)
         return true;
     if(StrContains(sWeapon, "rocket", false) > -1)
@@ -101,15 +112,15 @@ public ShouldGib(String:sWeapon[], any:customKill, any:attacker) {
         return true;
     if(((StrContains(sWeapon, "sentrygun", false) > -1) || (StrContains(sWeapon, "wrangler", false) > -1)) && IsLvl3Sentry(attacker))
         return true;
-    if(customKill == 1) // Headshot
-        return true;
+    /*if(customKill == 1) // Headshot
+        return true;*/
     /*if(customKill == 2) // Backstab
         return true;*/
     
     return false;
 }
 
-public IsLvl3Sentry(any:client) {
+IsLvl3Sentry(any:client) {
     new entity = -1;
     while((entity = FindEntityByClassname(entity, "obj_sentrygun")) != -1) {
         if(GetEntDataEnt2(entity, FindSendPropInfo("CBaseObject", "m_hBuilder")) == client) {
@@ -119,7 +130,7 @@ public IsLvl3Sentry(any:client) {
     return false;
 }
 
-public SpawnGibs(any:client, count) {
+SpawnGibs(any:client, count=10) {
     if(!IsValidEntity(client)) {
         return;
     }

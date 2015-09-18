@@ -1,6 +1,7 @@
 /* TODO: 
     Cosmetics appear on death?
     Set robot on spawn not instantly?
+    Demoman feet disappear when sticky jumping?
  */
 #pragma semicolon 1
 
@@ -18,22 +19,22 @@ new bool:g_bIsEnabled[MAXPLAYERS+1];
 new bool:g_bDemoNotice[MAXPLAYERS+1];
 
 public Plugin:myinfo = {
-    name = "Premium -> Robot",
+    name = "Premium -> Robot [TF2]",
     author = "Monster Killer",
     description = "Allows Robots",
-    version = "1.2",
+    version = "1.3",
     url = "http://monsterprojects.org"
 };
 
 
 public OnPluginStart() {
-    HookEvent("player_spawn", OnPlayerSpawned);
-    HookEvent("player_class", OnPlayerSpawned);
+    HookEvent("player_spawn", Event_PlayerSpawn);
+    HookEvent("player_class", Event_PlayerSpawn);
     
-    AddCommandListener(OnPlayerTaunt, "taunt");
-    AddCommandListener(OnPlayerTaunt, "+taunt");
+    AddCommandListener(Listener_PlayerTaunt, "taunt");
+    AddCommandListener(Listener_PlayerTaunt, "+taunt");
 
-    AddNormalSoundHook(SoundHook);
+    AddNormalSoundHook(Hook_SoundHook);
 }
 
 public OnAllPluginsLoaded() {
@@ -54,6 +55,8 @@ public Premium_Loaded() {
 public OnPluginEnd() {
     if(LibraryExists("premium_manager"))
         Premium_UnRegEffect(PLUGIN_EFFECT);
+    
+    RemoveNormalSoundHook(Hook_SoundHook);
 }
 
 public OnClientConnected(client) {
@@ -72,8 +75,8 @@ public Callback_DisableEffect(client) {
 }
 
 public OnEventShutdown() {
-    UnhookEvent("player_spawn", OnPlayerSpawned);
-    UnhookEvent("player_class", OnPlayerSpawned);
+    UnhookEvent("player_spawn", Event_PlayerSpawn);
+    UnhookEvent("player_class", Event_PlayerSpawn);
 }
 
 public OnMapStart() {
@@ -85,7 +88,7 @@ public OnMapStart() {
     }
 }
 
-public SetRobotModel(client) {
+SetRobotModel(client) {
     if(Premium_IsClientPremium(client) && IsPlayerAlive(client)) {
         if(g_bIsEnabled[client]) {
             EnableRobot(client);
@@ -95,7 +98,7 @@ public SetRobotModel(client) {
     }
 }
 
-public Action:OnPlayerSpawned(Handle:event, const String:name[], bool:dontBroadcast) {
+public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
     new client = GetClientOfUserId(GetEventInt(event, "userid"));
     if(Premium_IsClientPremium(client) && g_bIsEnabled[client])
         CreateTimer(0.2, Timer_SetRobotOnSpawn, GetEventInt(event, "userid"));
@@ -108,7 +111,7 @@ public Action:Timer_SetRobotOnSpawn(Handle:timer, any:userid) {
     }
 }
 
-public Action:OnPlayerTaunt(client, const String:command[], args) {
+public Action:Listener_PlayerTaunt(client, const String:command[], args) {
     if(g_bIsEnabled[client]) {
         new TFClassType:playerClass = TF2_GetPlayerClass(client);
         if(playerClass == TFClass_Engineer) {
@@ -121,7 +124,7 @@ public Action:OnPlayerTaunt(client, const String:command[], args) {
     return Plugin_Continue;
 }
 
-public Action:SoundHook(clients[64], &numClients, String:sound[PLATFORM_MAX_PATH], &Ent, &channel, &Float:volume, &level, &pitch, &flags) {
+public Action:Hook_SoundHook(clients[64], &numClients, String:sound[PLATFORM_MAX_PATH], &Ent, &channel, &Float:volume, &level, &pitch, &flags) {
     if(volume == 0.0 || volume == 0.9997)
         return Plugin_Continue;
 
@@ -158,7 +161,7 @@ public Action:SoundHook(clients[64], &numClients, String:sound[PLATFORM_MAX_PATH
     return Plugin_Continue;
 }
 
-public EnableRobot(client) {
+EnableRobot(client) {
     if(TF2_GetPlayerClass(client) == TFClass_DemoMan) {
         if(!g_bDemoNotice[client]) {
             PrintToChat(client, "%s \x07FE4444Due to an issue with the model, you cannot be a robot Demoman. Sorry :(\x01", PREMIUM_PREFIX);
@@ -177,7 +180,7 @@ public EnableRobot(client) {
     RemoveWearables(client);
 }
 
-public DisableRobot(client) {
+DisableRobot(client) {
     SetVariantString("");
     AcceptEntityInput(client, "SetCustomModel");
 }
@@ -185,7 +188,7 @@ public DisableRobot(client) {
 public OnGameFrame() {
     new maxclients = GetMaxClients();
     for(new i = 1; i < maxclients; i++) {
-        if(Premium_IsClientPremium(i) && g_bIsEnabled[i]) {
+        if(IsClientInGame(i) && IsPlayerAlive(i) && g_bIsEnabled[i]) {
             if(TF2_IsPlayerInCondition(i, TFCond_Cloaked) || TF2_IsPlayerInCondition(i, TFCond_Disguised)) {
                 if(g_bIsStealth[i] == false) {
                     g_bIsStealth[i] = true;
@@ -201,15 +204,15 @@ public OnGameFrame() {
     }
 }
 
-public OnPlayerCloak(client) {
+OnPlayerCloak(client) {
     DisableRobot(client);
 }
 
-public OnPlayerUnCloak(client) {
+OnPlayerUnCloak(client) {
     SetRobotModel(client);
 }
 
-public RemoveWearables(client) {
+RemoveWearables(client) {
     /* Items come back on resupply?! */
     new maxclients = GetMaxClients();
     for(new i = maxclients + 1; i <= 2048; i++) {
@@ -255,7 +258,7 @@ public Action:Timer_EntityHook(Handle:Timer, any:entity) {
 }
 
 public Action:cbTransmit(Entity, Client) {
-	if(Premium_IsClientPremium(Client) && g_bIsEnabled[Client]) {
+    if(Premium_IsClientPremium(Client) && g_bIsEnabled[Client]) {
         return Plugin_Handled;
     }
     return Plugin_Continue;

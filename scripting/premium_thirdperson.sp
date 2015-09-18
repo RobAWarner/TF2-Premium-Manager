@@ -13,7 +13,7 @@ new bool:g_bIsZoomed[MAXPLAYERS+1];
 new bool:g_bPlayerNotice[MAXPLAYERS+1];
 
 public Plugin:myinfo = {
-    name = "Premium -> Thirdperson",
+    name = "Premium -> Thirdperson [TF2]",
     author = "Monster Killer",
     description = "Allows players to toggle third person mode",
     version = "1.2",
@@ -21,8 +21,8 @@ public Plugin:myinfo = {
 };
 
 public OnPluginStart() {
-    HookEvent("player_spawn", Event_OnPlayerSpawned);
-    HookEvent("player_class", Event_OnPlayerSpawned);
+    HookEvent("player_spawn", Event_PlayerSpawn);
+    HookEvent("player_class", Event_PlayerSpawn);
 }
 
 public OnAllPluginsLoaded() {
@@ -67,11 +67,11 @@ public Callback_DisableEffect(client) {
 }
 
 public OnEventShutdown() {
-    UnhookEvent("player_spawn", Event_OnPlayerSpawned);
-    UnhookEvent("player_class", Event_OnPlayerSpawned);
+    UnhookEvent("player_spawn", Event_PlayerSpawn);
+    UnhookEvent("player_class", Event_PlayerSpawn);
 }
 
-public Action:Event_OnPlayerSpawned(Handle:event, const String:name[], bool:dontBroadcast) {
+public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
     new userid = GetEventInt(event, "userid");
     new client = GetClientOfUserId(userid);
     if(Premium_IsClientPremium(client) && g_bIsEnabled[client]) {
@@ -110,12 +110,12 @@ public OnGameFrame() {
     }
 }
 
-public OnPlayerZoom(client) {
+OnPlayerZoom(client) {
     SetVariantInt(0);
     AcceptEntityInput(client, "SetForcedTauntCam");
 }
 
-public OnPlayerUnZoom(client) {
+OnPlayerUnZoom(client) {
     SetVariantInt(1);
     AcceptEntityInput(client, "SetForcedTauntCam");
 }

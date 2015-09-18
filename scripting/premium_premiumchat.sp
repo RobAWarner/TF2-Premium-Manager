@@ -9,6 +9,12 @@
 #define PLUGIN_EFFECT "premiumchat"
 #define IGNORE_CHAT_SYMBOL '@'
 
+/* TODO:
+    cvar for chat simbol or put in config?
+    Use commandlistener instead of consolecmd?
+    Replace colour simbols in IRC?
+ */
+
 new bool:g_bIRCLoaded = false;
 
 new bool:g_bIsEnabled[MAXPLAYERS+1];

@@ -2,7 +2,11 @@
 #undef REQUIRE_PLUGIN
 #include <premium_manager>
 
-/* Global cooldown? once failled cannot vote again for x seconds. Once success cannot vote at all */
+/* 
+    Global cooldown? once failled cannot vote again for x seconds. Once success cannot vote at all 
+    Use cvar or mp_timelimit with current timeleft instead of tracking start time manually?
+    cvar for cooldown time etc?
+*/
 
 #define PLUGIN_EFFECT "forcethevote"
 
@@ -11,8 +15,8 @@ new Handle:g_hMapMenu = INVALID_HANDLE;
 
 public Plugin:myinfo = {
     name        = "Premium -> Force The Vote",
-    author      = "Azelphur",
-    description = "Allows premiums to force a vote for a specific map.",
+    author      = "Azelphur / Monster Killer",
+    description = "Allows premium users to force a vote for a specific map.",
     version     = "1.2",
     url         = "http://www.azelphur.com"
 };
@@ -37,7 +41,7 @@ public OnLibraryAdded(const String:name[]) {
 
 public Premium_Loaded() {
     Premium_RegBasicEffect(PLUGIN_EFFECT, "Force The Vote", Callback_CallVote, true);
-    Premium_AddEffectCooldown(PLUGIN_EFFECT, 3600, PREMIUM_COOLDOWN_ENABLE); // 3600
+    Premium_AddEffectCooldown(PLUGIN_EFFECT, 3600, PREMIUM_COOLDOWN_ENABLE);
 }
 
 public OnMapStart() {
@@ -57,17 +61,17 @@ public OnMapStart() {
 
 public Callback_CallVote(client) {
     new iSeconds = (GetTime() - g_iMapStartTime);
-    if(iSeconds < 10) { // 300
+    if(iSeconds < 300) {
         new remaining = 300-iSeconds;
         PrintToChat(client, "%s You must wait %d:%02d to use vote map.", PREMIUM_PREFIX, remaining / 60, remaining % 60);
-        return PREMIUM_CALL_STOP;
+        return PREMIUM_RETURN_STOP;
     }
 
     if(g_hMapMenu != INVALID_HANDLE) {
         DisplayMenu(g_hMapMenu, client, MENU_TIME_FOREVER);
     }
 
-    return PREMIUM_CALL_STOP;
+    return PREMIUM_RETURN_STOP;
 }
 
 public MenuHandler_MapList(Handle:hMenu, MenuAction:action, param1, param2) {

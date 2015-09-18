@@ -8,6 +8,10 @@
 
 #define PLUGIN_EFFECT "speedometer"
 
+/* TODO:
+    Move colours / position / speed unit to config file?
+ */
+
 new bool:g_bIsEnabled[MAXPLAYERS+1];
 new bool:g_bCookiesCached[MAXPLAYERS + 1];
 
@@ -52,6 +56,7 @@ public OnPluginStart() {
     AddMenuItem(g_hSpeedoMenuUnits, "kph", "Kilometers per hour (kph)");
     AddMenuItem(g_hSpeedoMenuUnits, "m/s", "Meters per second (m/s)");
     AddMenuItem(g_hSpeedoMenuUnits, "f/s", "Feet per second (feet/s)");
+
     // Position Menu
     g_hSpeedoMenuPosition = CreateMenu(MenuHandler_ConfigMenu_Pos);
     SetMenuExitBackButton(g_hSpeedoMenuPosition, true);
@@ -65,6 +70,7 @@ public OnPluginStart() {
     AddMenuItem(g_hSpeedoMenuPosition, "-1.0;0.8", "Bottom Center");
     AddMenuItem(g_hSpeedoMenuPosition, "0.1;0.8", "Bottom Left");
     AddMenuItem(g_hSpeedoMenuPosition, "0.5;0.8", "Bottom Right");
+
     // Color Menu
     g_hSpeedoMenuColor = CreateMenu(MenuHandler_ConfigMenu_Color);
     SetMenuExitBackButton(g_hSpeedoMenuColor, true);
