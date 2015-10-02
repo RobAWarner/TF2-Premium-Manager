@@ -35,6 +35,18 @@ public OnLibraryAdded(const String:name[]) {
 		Premium_Loaded();
 }
 
+public OnLibraryRemoved(const String:name[]) {
+	if(StrEqual(name, "premium_manager")) {
+        for(new i = 1; i <= MaxClients; i++) {
+            g_bIsEnabled[i] = false;
+            if(IsClientInGame(i) && IsPlayerAlive(i)) {
+                SetVariantInt(0);
+                AcceptEntityInput(i, "SetForcedTauntCam");
+            }
+        }
+    }
+}
+
 public Premium_Loaded() {
     Premium_RegEffect(PLUGIN_EFFECT, "Third Person", Callback_EnableEffect, Callback_DisableEffect, true);
 }
@@ -74,7 +86,7 @@ public OnEventShutdown() {
 public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
     new userid = GetEventInt(event, "userid");
     new client = GetClientOfUserId(userid);
-    if(Premium_IsClientPremium(client) && g_bIsEnabled[client]) {
+    if(g_bIsEnabled[client]) {
         if(!g_bPlayerNotice[client]) {
             PrintToChat(client, "%s \x07FE4444While in third person, your crosshair appears higher than it actually is.\x01", PREMIUM_PREFIX);
             g_bPlayerNotice[client] = true;
@@ -85,16 +97,15 @@ public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroa
 
 public Action:Timer_SetTPOnSpawn(Handle:timer, any:userid) {
     new client = GetClientOfUserId(userid);
-    if(Premium_IsClientPremium(client) && IsPlayerAlive(client)) {
+    if(IsClientInGame(client) && IsPlayerAlive(client) && g_bIsEnabled[client]) {
         SetVariantInt(1);
         AcceptEntityInput(client, "SetForcedTauntCam");
     } 
 }
 
 public OnGameFrame() {
-    new maxclients = GetMaxClients();
-    for(new i = 1; i < maxclients; i++) {
-        if(Premium_IsClientPremium(i) && IsPlayerAlive(i) && g_bIsEnabled[i]) {
+    for(new i = 1; i <= MaxClients; i++) {
+        if(IsClientInGame(i) && IsPlayerAlive(i) && g_bIsEnabled[i]) {
             if(TF2_IsPlayerInCondition(i, TFCond_Zoomed)) {
                 if(g_bIsZoomed[i] == false) {
                     g_bIsZoomed[i] = true;

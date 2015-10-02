@@ -47,6 +47,14 @@ public OnLibraryAdded(const String:name[]) {
         Premium_Loaded();
 }
 
+public OnLibraryRemoved(const String:name[]) {
+	if(StrEqual(name, "premium_manager")) {
+        for(new i = 1; i <= MaxClients; i++) {
+            g_bIsEnabled[i] = false;
+        }
+    }
+}
+
 public Premium_Loaded() {
     Premium_RegEffect(PLUGIN_EFFECT, "Robot Mode", Callback_EnableEffect, Callback_DisableEffect, true);
     Premium_AddEffectCooldown(PLUGIN_EFFECT, 5, PREMIUM_COOLDOWN_ENABLE);
@@ -89,7 +97,7 @@ public OnMapStart() {
 }
 
 SetRobotModel(client) {
-    if(Premium_IsClientPremium(client) && IsPlayerAlive(client)) {
+    if(IsClientInGame(client) && IsPlayerAlive(client)) {
         if(g_bIsEnabled[client]) {
             EnableRobot(client);
         } else {
@@ -100,13 +108,13 @@ SetRobotModel(client) {
 
 public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
     new client = GetClientOfUserId(GetEventInt(event, "userid"));
-    if(Premium_IsClientPremium(client) && g_bIsEnabled[client])
+    if(IsClientInGame(client) && g_bIsEnabled[client])
         CreateTimer(0.2, Timer_SetRobotOnSpawn, GetEventInt(event, "userid"));
 }
 
 public Action:Timer_SetRobotOnSpawn(Handle:timer, any:userid) {
     new client = GetClientOfUserId(userid);
-    if(client != 0 && Premium_IsClientPremium(client) && IsPlayerAlive(client)) {
+    if(IsClientInGame(client) && IsPlayerAlive(client)) {
         SetRobotModel(client);
     }
 }
@@ -125,16 +133,17 @@ public Action:Listener_PlayerTaunt(client, const String:command[], args) {
 }
 
 public Action:Hook_SoundHook(clients[64], &numClients, String:sound[PLATFORM_MAX_PATH], &Ent, &channel, &Float:volume, &level, &pitch, &flags) {
+    new client = Ent;
+
     if(volume == 0.0 || volume == 0.9997)
         return Plugin_Continue;
 
-    if(!Premium_IsClientPremium(Ent))
+    if(!IsClientInGame(client) || !g_bIsEnabled[client] || g_bIsStealth[client])
         return Plugin_Continue;
 
-    new client = Ent;
     new TFClassType:playerClass = TF2_GetPlayerClass(client);
 
-    if(playerClass != TFClass_DemoMan && g_bIsEnabled[client] && !g_bIsStealth[client]) {
+    if(playerClass != TFClass_DemoMan) {
         if(StrContains(sound, "vo/", false) == -1) 
             return Plugin_Continue;
         if(StrContains(sound, "announcer", false) != -1)
@@ -186,8 +195,7 @@ DisableRobot(client) {
 }
 
 public OnGameFrame() {
-    new maxclients = GetMaxClients();
-    for(new i = 1; i < maxclients; i++) {
+    for(new i = 1; i <= MaxClients; i++) {
         if(IsClientInGame(i) && IsPlayerAlive(i) && g_bIsEnabled[i]) {
             if(TF2_IsPlayerInCondition(i, TFCond_Cloaked) || TF2_IsPlayerInCondition(i, TFCond_Disguised)) {
                 if(g_bIsStealth[i] == false) {
@@ -214,8 +222,7 @@ OnPlayerUnCloak(client) {
 
 RemoveWearables(client) {
     /* Items come back on resupply?! */
-    new maxclients = GetMaxClients();
-    for(new i = maxclients + 1; i <= 2048; i++) {
+    for(new i = MaxClients + 1; i <= 2048; i++) {
         if(!IsValidEntity(i))
             continue;
 
@@ -244,7 +251,7 @@ public OnEntityCreated(entity, const String:sClassname[]) {
 public Action:Timer_EntityHook(Handle:Timer, any:entity) {
     if(IsValidEdict(entity)) {
         new owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-        if(!Premium_IsClientPremium(owner) || !g_bIsEnabled[owner])
+        if(!IsClientInGame(owner) || !g_bIsEnabled[owner])
             return;
 
         decl String:sModel[256];
@@ -258,7 +265,7 @@ public Action:Timer_EntityHook(Handle:Timer, any:entity) {
 }
 
 public Action:cbTransmit(Entity, Client) {
-    if(Premium_IsClientPremium(Client) && g_bIsEnabled[Client]) {
+    if(IsClientInGame(Client) && g_bIsEnabled[Client]) {
         return Plugin_Handled;
     }
     return Plugin_Continue;

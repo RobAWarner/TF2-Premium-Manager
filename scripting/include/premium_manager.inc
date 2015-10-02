@@ -64,11 +64,12 @@ native bool:Premium_RegEffect(const String:effect[], const String:displayName[],
  * @param effect             A name to be used to reference to this effect, will be used as its command.
  * @param displayName        A name to display to players for this effect.
  * @param fireCallback       A function to use as a callback for when a user runs the command
+ * @param menuText           Text to use for the effect sub-menu, to activate the effect.
  * @param menuItem           Add a entry into premium menu for this effect.
  * @return                   True is effect registered, false if it already exists
  */
 
-native bool:Premium_RegBasicEffect(const String:effect[], const String:displayName[], PremiumCB:fireCallback, bool:menuItem = true);
+native bool:Premium_RegBasicEffect(const String:effect[], const String:displayName[], PremiumCB:fireCallback, const String:menuText[], bool:menuItem = true);
 
 /**
  * UnRegisters an effect

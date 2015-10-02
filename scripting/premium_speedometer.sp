@@ -94,6 +94,14 @@ public OnLibraryAdded(const String:name[]) {
         Premium_Loaded();
 }
 
+public OnLibraryRemoved(const String:name[]) {
+	if(StrEqual(name, "premium_manager")) {
+        for(new i = 1; i <= MaxClients; i++) {
+            g_bIsEnabled[i] = false;
+        }
+    }
+}
+
 public Premium_Loaded() {
     Premium_RegEffect(PLUGIN_EFFECT, "Speedometer", Callback_EnableEffect, Callback_DisableEffect, true);
     Premium_AddMenuOption(PLUGIN_EFFECT, "Change Color", Callback_ShowColorOptionMenu);
@@ -172,8 +180,7 @@ public OnGameFrame() {
     new Float:x;
     new Float:y;
     new Float:z;
-    new clientCount = GetMaxClients();
-    for(new client = 1; client <= clientCount; client++) {
+    for(new client = 1; client <= MaxClients; client++) {
         if(IsClientInGame(client) && IsPlayerAlive(client) && g_bIsEnabled[client]) {
             x=GetEntDataFloat(client,GetVelocityOffset_0);
             y=GetEntDataFloat(client,GetVelocityOffset_1);

@@ -1,6 +1,5 @@
 /* TODO: 
     config option for ducks on backstab/headshot?
-    ducks for explode?
     Timer to stop spamming ducks?
 */
 #pragma semicolon 1
@@ -10,14 +9,16 @@
 #undef REQUIRE_PLUGIN
 #include <premium_manager>
 
-#define PLUGIN_EFFECT "duckgibs"
+#define PLUGIN_EFFECT "bonusducks"
+#define SOUND_DUCK "ambient/bumper_car_quack3.wav"
 
 new bool:g_bIsEnabled[MAXPLAYERS+1];
 
+
 public Plugin:myinfo = {
-    name = "Premium -> Duck Gibs [TF2]",
+    name = "Premium -> Bonus Ducks [TF2]",
     author = "Monster Killer",
-    description = "Spawns ducks when you gib someone or they gib you.",
+    description = "Spawns ducks when you would gib someone or they would gib you.",
     version = "1.3",
     url = "http://monsterprojects.org"
 };
@@ -25,8 +26,6 @@ public Plugin:myinfo = {
 public OnPluginStart() {
     HookEvent("player_death", Event_PlayerDeath);
     AddCommandListener(Event_PlayerExplode, "explode");
-
-    //SetConVarBool(FindConVar("tf_playergib"), false);
 }
 
 public OnAllPluginsLoaded() {
@@ -39,8 +38,16 @@ public OnLibraryAdded(const String:name[]) {
 		Premium_Loaded();
 }
 
+public OnLibraryRemoved(const String:name[]) {
+	if(StrEqual(name, "premium_manager")) {
+        for(new i = 1; i <= MaxClients; i++) {
+            g_bIsEnabled[i] = false;
+        }
+    }
+}
+
 public Premium_Loaded() {
-    Premium_RegEffect(PLUGIN_EFFECT, "Duck Gibs", Callback_EnableEffect, Callback_DisableEffect, true);
+    Premium_RegEffect(PLUGIN_EFFECT, "Bonus Ducks", Callback_EnableEffect, Callback_DisableEffect, true);
     Premium_AddEffectCooldown(PLUGIN_EFFECT, 5, PREMIUM_COOLDOWN_ENABLE);
 }
 
@@ -69,6 +76,7 @@ public OnEventShutdown() {
 
 public OnMapStart() {
     PrecacheModel("models/player/gibs/gibs_duck.mdl", true);
+    PrecacheSound(SOUND_DUCK, true);
 }
 
 public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast) {
@@ -78,7 +86,7 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
     new String:sWeapon[32];
     GetEventString(event, "weapon", sWeapon, sizeof(sWeapon));
     
-    if((Premium_IsClientPremium(attacker) && g_bIsEnabled[attacker] == true) || (Premium_IsClientPremium(client) && g_bIsEnabled[client] == true)) {
+    if(g_bIsEnabled[attacker] || g_bIsEnabled[client]) {
         new customKill = GetEventInt(event, "customkill");
         if(ShouldGib(sWeapon, customKill, attacker)) {
             CreateTimer(0.1, Timer_DeleteRagdoll, client);
@@ -89,7 +97,7 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 }
 
 public Action:Event_PlayerExplode(client, const String:command[], argc) {
-    if(Premium_IsClientPremium(client) && g_bIsEnabled[client] == true) {
+    if(g_bIsEnabled[client]) {
         CreateTimer(0.1, Timer_DeleteRagdoll, client);
         SpawnGibs(client);
     }
@@ -135,7 +143,7 @@ SpawnGibs(any:client, count=10) {
         return;
     }
 
-    decl Float:pos[3];
+    float pos[3];
     GetClientAbsOrigin(client, pos);
   
     for(new i = 0; i < count; i++) {
@@ -154,10 +162,16 @@ SpawnGibs(any:client, count=10) {
                 fVel[1] = GetRandomFloat(-250.0, 250.0);
                 fVel[2] = GetRandomFloat(100.0, 250.0);
                 TeleportEntity(gib, pos, NULL_VECTOR, fVel);
-                CreateTimer(15.0, Timer_DeleteOldGib, gib);
+                CreateTimer(10.0, Timer_DeleteOldGib, gib);
             }
         }
     }
+    
+    PlayDuckSound(client, pos);
+}
+
+PlayDuckSound(client, float pos[3]) {
+    EmitAmbientSound(SOUND_DUCK, pos, client, 70);	
 }
 
 public Action:Timer_DeleteOldGib(Handle:Timer, any:ent) {

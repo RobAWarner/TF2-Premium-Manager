@@ -1,15 +1,13 @@
 /* TODO:
     Log errors
     translations
-    track status here rather than in plugins? - Maybe not a good idea?
     Pass userid not client?
     Disable client effects if lose premium on reloadadmins?
-    Run all disablecallback's on unload?
     Are we actually checking if client is premium in the right places
-    Should we be using IsClientPremium in plugins? If isenabled is set then the client must be?
     Log actions to custom file? setting for loggin on/off?
     Command for list of registered effects?
-    Basic effects should add a menu sub-item, specified on register. E.G. Force The Vote -> Start Map Vote.
+    Client shouldn't be premium until cookies cached?
+    Forwards/hooks for spawn, cookies, client connect & cookies & authorised?
 */
 #pragma semicolon 1
 
@@ -33,6 +31,7 @@ enum g_ePremiumEffect {
     Handle:clientEnableCooldownCookie, // Cookie used for client enable cooldown
     Handle:clientDisableCooldownCookie, // Cookie used for client disable cooldown
     Handle:clientStateCookie, // Cookie used to store effect on/off state
+    String:customMenuText[64],
     bool:menuItem, // Should the item have a menu item in the main menu?
     bool:togglable, // Is the effect togglable?
     Handle:pluginHandle // Hangle for the plugin that registered the effect
@@ -66,9 +65,8 @@ public OnPluginStart() {
     SetMenuTitle(g_hPremiumMenu, "Premium Effects");
 
     RegConsoleCmd("sm_premium", Command_Premium, "sm_premium - Open premium menu");
-    
-    new maxclients = GetMaxClients();
-    for(new i = 1; i < maxclients; i++) {
+
+    for(new i = 1; i <= MaxClients; i++) {
         if(IsValidClient(i)) {
             if(!g_bClientAuthorised[i]) {
                 UpdateClientPremiumStatus(i);
@@ -137,6 +135,7 @@ public OnClientConnected(client) {
 
 public OnClientDisconnect(client) {
     CloseHandle(g_hClientLastMenu[client]);
+    g_bIsPremium[client] = false;
 }
 
 public OnClientCookiesCached(client) {
@@ -241,8 +240,7 @@ public Native_RegEffect(Handle:plugin, numParams) {
     Effect[clientStateCookie] = hCookie;
 
     // Set cooldown to 0 for all clients
-    new maxclients = GetMaxClients();
-    for(new i = 1; i < maxclients; i++) {
+    for(new i = 1; i <= MaxClients; i++) {
         Effect[clientEnableCooldownTime][i] = 0;
         Effect[clientDisableCooldownTime][i] = 0;
     }
@@ -299,17 +297,21 @@ public Native_RegBasicEffect(Handle:plugin, numParams) {
     Effect[clientDisableCooldownCookie] = INVALID_HANDLE;
 
     // Set cooldown to 0 for all clients
-    new maxclients = GetMaxClients();
-    for(new i = 1; i < maxclients; i++) {
+    for(new i = 1; i <= MaxClients; i++) {
         Effect[clientEnableCooldownTime][i] = 0;
         Effect[clientDisableCooldownTime][i] = 0;
     }
 
     // Client Cookie (not needed here)
     Effect[clientStateCookie] = INVALID_HANDLE;
+    
+    // Custom Menu Item customMenuText
+    decl String:sEffectCustomMenuText[64];
+    GetNativeString(4, sEffectCustomMenuText, sizeof(sEffectCustomMenuText));
+    strcopy(Effect[customMenuText], sizeof(Effect[customMenuText]), sEffectCustomMenuText);
 
     // Add a menu item?
-    Effect[menuItem] = GetNativeCell(4);
+    Effect[menuItem] = GetNativeCell(5);
 
     // Togglable?
     Effect[togglable] = false;
@@ -341,8 +343,7 @@ public Native_UnRegEffect(Handle:plugin, numParams) {
 
     //if(Effect[pluginHandle] == plugin) {
     if(Effect[disableCallback] != INVALID_HANDLE) {
-        new maxclients = GetMaxClients();
-        for(new i = 1; i < maxclients; i++) {
+        for(new i = 1; i <= MaxClients; i++) {
             if(IsClientPremium(i)) {
                 Call_StartForward(Effect[disableCallback]);
                 Call_PushCell(i);
@@ -609,8 +610,7 @@ public EnableActiveClients(String:sEffectName[], Handle:hEnableCallback) {
         return;
     }
 
-    new maxclients = GetMaxClients();
-    for(new i = 1; i < maxclients; i++) {
+    for(new i = 1; i <= MaxClients; i++) {
         if(AreClientCookiesCached(i) && IsClientPremium(i) && Premium_IsEffectEnabled(i, sEffectName)) {
             Call_StartForward(hEnableCallback);
             Call_PushCell(i);
@@ -934,7 +934,6 @@ public MenuHandler_PremiumTop(Handle:menu, MenuAction:action, param1, param2) {
         SetMenuTitle(hMenu, "Premium / %s", Effect[displayName]);
 
         new MenuOptionsIndex = FindStringInArray(g_hPremiumMenuEffectItems, sEffectName);
-        new bHasItems = false;
 
         if(Effect[togglable]) {
             Format(sMenuItem, sizeof(sMenuItem), "Turn %s ", Effect[displayName]);
@@ -943,18 +942,19 @@ public MenuHandler_PremiumTop(Handle:menu, MenuAction:action, param1, param2) {
             } else {
                 StrCat(sMenuItem, sizeof(sMenuItem), "On");
             }
-
-            new Handle:hDataPack = CreateDataPack();
-            WritePackString(hDataPack, sEffectName);
-            WritePackCell(hDataPack, PREMIUM_ACTION_TRIGGER);
-            WritePackCell(hDataPack, INVALID_HANDLE);
-
-            decl String:sDataFormat[64];
-            Format(sDataFormat, sizeof(sDataFormat), "%d", hDataPack);
-
-            AddMenuItem(hMenu, sDataFormat, sMenuItem);
-            bHasItems = true;
+        } else {
+            strcopy(sMenuItem, sizeof(sMenuItem), Effect[customMenuText]);
         }
+
+        new Handle:hDataPack = CreateDataPack();
+        WritePackString(hDataPack, sEffectName);
+        WritePackCell(hDataPack, PREMIUM_ACTION_TRIGGER);
+        //WritePackCell(hDataPack, INVALID_HANDLE);
+
+        decl String:sDataFormat[64];
+        Format(sDataFormat, sizeof(sDataFormat), "%d", hDataPack);
+
+        AddMenuItem(hMenu, sDataFormat, sMenuItem);
 
         if(MenuOptionsIndex >= 0) {
             new Handle:hOptionArray = GetArrayCell(g_hPremiumMenuEffectOptions, MenuOptionsIndex);
@@ -966,25 +966,16 @@ public MenuHandler_PremiumTop(Handle:menu, MenuAction:action, param1, param2) {
                 ReadPackString(hOptionDataPack, sItemTitle, sizeof(sItemTitle));
                 new Handle:hItemCallback = ReadPackCell(hOptionDataPack);
 
-                new Handle:hDataPack = CreateDataPack();
-                WritePackString(hDataPack, sEffectName);
-                WritePackCell(hDataPack, PREMIUM_ACTION_CALLBACK);
-                WritePackCell(hDataPack, hItemCallback);
+                new Handle:hDataPack2 = CreateDataPack();
+                WritePackString(hDataPack2, sEffectName);
+                WritePackCell(hDataPack2, PREMIUM_ACTION_CALLBACK);
+                WritePackCell(hDataPack2, hItemCallback);
 
-                decl String:sDataFormat[64];
-                Format(sDataFormat, sizeof(sDataFormat), "%d", hDataPack);
+                decl String:sDataFormat2[64];
+                Format(sDataFormat2, sizeof(sDataFormat2), "%d", hDataPack2);
 
-                AddMenuItem(hMenu, sDataFormat, sItemTitle);
+                AddMenuItem(hMenu, sDataFormat2, sItemTitle);
             }
-            bHasItems = true;
-        }
-
-        if(!Effect[togglable] && !bHasItems) {
-            new returnValue = TriggerEffect(param1, sEffectName);
-            if(returnValue != PREMIUM_RETURN_HIDEMENU && returnValue != PREMIUM_RETURN_STOP) {
-                ShowPremiumMenu(param1);
-            }
-            return;
         }
 
         SetMenuExitBackButton(hMenu, true);

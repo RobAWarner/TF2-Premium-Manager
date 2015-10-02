@@ -71,7 +71,7 @@ public OnPluginEnd() {
     if(LibraryExists("premium_manager")) {
         Premium_UnRegEffect(PLUGIN_EFFECT);
     } else {
-        for(new i = 1; i < GetMaxClients(); i++) {
+        for(new i = 1; i <= MaxClients; i++) {
             if(IsClientInGame(i) && g_bIsEnabled[i]) {
                 RemoveAllParticles(i);
             }
@@ -87,6 +87,14 @@ public OnAllPluginsLoaded() {
 public OnLibraryAdded(const String:name[]) {
     if(StrEqual(name, "premium_manager"))
         Premium_Loaded();
+}
+
+public OnLibraryRemoved(const String:name[]) {
+	if(StrEqual(name, "premium_manager")) {
+        for(new i = 1; i <= MaxClients; i++) {
+            g_bIsEnabled[i] = false;
+        }
+    }
 }
 
 public Premium_Loaded() {
@@ -381,8 +389,7 @@ stock CreateParticle(String:type[], Float:time, entity, attach=NO_ATTACH, Float:
 }
 
 public OnGameFrame() {
-    new maxclients = GetMaxClients();
-    for (new i = 1; i < maxclients; i++) {
+    for(new i = 1; i <= MaxClients; i++) {
         if(Premium_IsClientPremium(i) && IsPlayerAlive(i) && g_bIsEnabled[i]) {
             if(TF2_IsPlayerInCondition(i, TFCond_Cloaked) || TF2_IsPlayerInCondition(i, TFCond_Disguised)) {
                 if(g_bIsStealth[i] == false) {

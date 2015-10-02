@@ -40,7 +40,7 @@ public OnLibraryAdded(const String:name[]) {
 }
 
 public Premium_Loaded() {
-    Premium_RegBasicEffect(PLUGIN_EFFECT, "Force The Vote", Callback_CallVote, true);
+    Premium_RegBasicEffect(PLUGIN_EFFECT, "Force The Vote", Callback_CallVote, "Choose a map", true);
     Premium_AddEffectCooldown(PLUGIN_EFFECT, 3600, PREMIUM_COOLDOWN_ENABLE);
 }
 

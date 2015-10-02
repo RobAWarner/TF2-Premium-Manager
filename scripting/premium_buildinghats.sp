@@ -118,6 +118,14 @@ public OnLibraryAdded(const String:name[]) {
 	}
 }
 
+public OnLibraryRemoved(const String:name[]) {
+	if(StrEqual(name, "premium_manager")) {
+        for(new i = 1; i <= MaxClients; i++) {
+            g_bWantsTheH[i] = false;
+        }
+    }
+}
+
 public Premium_Loaded() {
 	Premium_RegEffect(PLUGIN_EFFECT, "Building Hats", Callback_EnableEffect, Callback_DisableEffect, true);
 	Premium_AddMenuOption(PLUGIN_EFFECT, "Re-roll Hats", Callback_RerollHats);

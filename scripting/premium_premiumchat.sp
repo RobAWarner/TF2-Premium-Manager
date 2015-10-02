@@ -62,6 +62,17 @@ public OnLibraryAdded(const String:name[]) {
         g_bIRCLoaded = true;
 }
 
+public OnLibraryRemoved(const String:name[]) {
+	if(StrEqual(name, "premium_manager")) {
+        for(new i = 1; i <= MaxClients; i++) {
+            g_bIsEnabled[i] = false;
+        }
+    }
+	if(StrEqual(name, "sourceirc")) {
+        g_bIRCLoaded = false;
+    }
+}
+
 public Premium_Loaded() {
     Premium_RegEffect(PLUGIN_EFFECT, "Premium Chat", Callback_EnableEffect, Callback_DisableEffect, true);
     Premium_AddMenuOption(PLUGIN_EFFECT, "Change Color", Callback_ShowColorOptionMenu);
