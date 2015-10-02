@@ -138,7 +138,7 @@ public Action:Hook_SoundHook(clients[64], &numClients, String:sound[PLATFORM_MAX
     if(volume == 0.0 || volume == 0.9997)
         return Plugin_Continue;
 
-    if(!IsClientInGame(client) || !g_bIsEnabled[client] || g_bIsStealth[client])
+    if(client > MaxClients || client < 1 || !IsClientInGame(client) || !g_bIsEnabled[client] || g_bIsStealth[client])
         return Plugin_Continue;
 
     new TFClassType:playerClass = TF2_GetPlayerClass(client);

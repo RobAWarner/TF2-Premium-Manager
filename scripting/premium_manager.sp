@@ -143,7 +143,7 @@ public OnClientCookiesCached(client) {
 }
 
 public GetClientCookies(client) {
-    if(IsClientInGame(client) && !IsClientSourceTV(client) && !IsClientReplay(client) && !IsFakeClient(client)) {
+    if(!IsClientSourceTV(client) && !IsClientReplay(client) && !IsFakeClient(client)) {
         for(new i = 0; i < GetArraySize(g_hEffectNames); i++) {
             decl String:sEffectName[64], Effect[g_ePremiumEffect];
             GetArrayString(g_hEffectNames, i, sEffectName, sizeof(sEffectName));
