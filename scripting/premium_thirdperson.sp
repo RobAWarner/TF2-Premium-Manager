@@ -88,7 +88,7 @@ public Action:Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroa
     new client = GetClientOfUserId(userid);
     if(g_bIsEnabled[client]) {
         if(!g_bPlayerNotice[client]) {
-            PrintToChat(client, "%s \x07FE4444While in third person, your crosshair appears higher than it actually is.\x01", PREMIUM_PREFIX);
+            PrintToChat(client, "%s \x07FE4444While in third person, your crosshair may appear higher than it actually is.\x01", PREMIUM_PREFIX);
             g_bPlayerNotice[client] = true;
         }
         CreateTimer(0.2, Timer_SetTPOnSpawn, userid);
